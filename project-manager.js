@@ -66,10 +66,18 @@ async function buildAndRunProject(projectName, projectPath, port) {
   try {
     // Build project
     console.log(`Building ${projectName} on port ${port}`);
-    execSync('npm run build', {
-      stdio: 'inherit',
-      cwd: projectPath
-    });
+    try {
+      const buildOutput = execSync('npm run build', {
+        cwd: projectPath,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      console.log(`Build output for ${projectName}:`, buildOutput);
+    } catch (buildError) {
+      console.error(`Build failed for ${projectName}:`, buildError.stdout);
+      console.error(`Build stderr for ${projectName}:`, buildError.stderr);
+      throw buildError;
+    }
     
     // Start project
     console.log(`Starting ${projectName} on port ${port}`);

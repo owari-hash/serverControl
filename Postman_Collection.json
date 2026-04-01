@@ -1,0 +1,110 @@
+{
+	"info": {
+		"_postman_id": "nextjs-project-manager",
+		"name": "Next.js Project Manager API",
+		"description": "Collection for automated Next.js project deployment system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create New Project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"projectName\": \"my-new-app\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/create-project",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"create-project"
+					]
+				},
+				"description": "Creates a new Next.js project automatically with dependencies, build, and run"
+			},
+			"response": []
+		},
+		{
+			"name": "List All Projects",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/projects",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"projects"
+					]
+				},
+				"description": "Returns a list of all running projects with their details"
+			},
+			"response": []
+		},
+		{
+			"name": "Stop Project",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/projects/{{projectName}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"projects",
+						"{{projectName}}"
+					]
+				},
+				"description": "Stops and removes a running project"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Project Access",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{projectUrl}}",
+					"host": [
+						"{{projectUrl}}"
+					]
+				},
+				"description": "Test access to a created Next.js project"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3001",
+			"description": "Your server IP and manager port"
+		},
+		{
+			"key": "projectName",
+			"value": "my-new-app",
+			"description": "Name of the project to stop"
+		},
+		{
+			"key": "projectUrl",
+			"value": "http://localhost:3000",
+			"description": "URL of the created project"
+		}
+	]
+}

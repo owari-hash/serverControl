@@ -1,34 +1,47 @@
 # Next.js Project Manager
 
-Automated Next.js project deployment system for Ubuntu servers.
+Automated Next.js project deployment system for Ubuntu servers with PM2 process management.
 
 ## Features
 
 - **POST API** to create new Next.js projects automatically
 - **Auto-dependency installation** and project building
 - **Port management** - assigns available ports automatically
-- **Process management** - start/stop projects
+- **Process management** with PM2 - auto-restart, monitoring
 - **REST API** for project management
+- **Production-ready** with logging and persistence
 
-## Setup
+## Quick Deployment
 
-### 1. Install Dependencies
+### 1. Clone and Deploy
 ```bash
+git clone https://github.com/owari-hash/serverControl.git
+cd serverControl
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### 2. Manual Setup
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Create directories
+mkdir -p /home/projects logs
+
+# Install dependencies
 npm install
-```
 
-### 2. Create Projects Directory
-```bash
-sudo mkdir -p /home/projects
-sudo chown $USER:$USER /home/projects
-```
+# Start with PM2
+pm2 start ecosystem.config.js
 
-### 3. Start the Manager
-```bash
-npm start
-```
+# Save PM2 configuration
+pm2 save
 
-The manager will run on port 3001.
+# Setup PM2 to start on boot
+pm2 startup
+pm2 save
+```
 
 ## API Endpoints
 
@@ -73,6 +86,46 @@ GET /api/projects
 ### Stop a Project
 ```bash
 DELETE /api/projects/my-app
+```
+
+## PM2 Management
+
+### Basic Commands
+```bash
+pm2 status              # Check status
+pm2 logs                # View logs
+pm2 logs nextjs-project-manager  # View specific app logs
+pm2 restart all         # Restart all apps
+pm2 stop all            # Stop all apps
+pm2 monit               # Open monitoring dashboard
+pm2 delete all          # Remove all apps
+```
+
+### Log Management
+```bash
+# View real-time logs
+pm2 logs
+
+# View error logs
+pm2 logs --err
+
+# View logs for last 100 lines
+pm2 logs --lines 100
+
+# Clear logs
+pm2 flush
+```
+
+### Process Management
+```bash
+# Restart the manager
+pm2 restart nextjs-project-manager
+
+# Reload without downtime
+pm2 reload nextjs-project-manager
+
+# Get detailed info
+pm2 show nextjs-project-manager
 ```
 
 ## Usage Examples
@@ -121,33 +174,126 @@ Each created project follows the standard Next.js structure:
 └── ... (standard Next.js files)
 ```
 
-## Security Notes
+## Monitoring and Logs
 
-- The API runs on all interfaces (0.0.0.0) - consider firewall rules
-- Projects run as the same user as the manager
-- Consider adding authentication for production use
+### PM2 Monitoring
+```bash
+# Open monitoring dashboard
+pm2 monit
 
-## Monitoring
+# Check CPU/Memory usage
+pm2 status
 
-Check the manager logs to see:
-- Project creation progress
-- Build status
-- Running project logs
-- Error messages
+# View process details
+pm2 show nextjs-project-manager
+```
+
+### Log Files
+- **Error logs:** `./logs/err.log`
+- **Output logs:** `./logs/out.log`
+- **Combined logs:** `./logs/combined.log`
+
+### Web Monitoring (Optional)
+```bash
+# Install PM2 Plus monitoring
+pm2 install pm2-server-monit
+
+# Access web dashboard at
+# http://your-server-ip:9615
+```
+
+## Production Considerations
+
+### Security
+- Configure firewall rules for ports 3001 and project ports
+- Consider adding API authentication
+- Use HTTPS in production
+
+### Performance
+- Monitor memory usage with `pm2 monit`
+- Adjust `max_memory_restart` in ecosystem.config.js
+- Consider using clustering for high load
+
+### Backup
+```bash
+# Backup PM2 configuration
+pm2 save
+
+# Export configuration
+pm2 ecosystem > ecosystem.backup.js
+
+# Backup projects directory
+tar -czf projects-backup.tar.gz /home/projects
+```
 
 ## Troubleshooting
 
-### Port Already in Use
-If a port is already in use by another service, the manager will skip it and use the next available port.
+### Common Issues
 
-### Build Failures
-Check the manager logs for build errors. Common issues:
-- Missing dependencies
-- Syntax errors in generated code
-- Insufficient system resources
+**Manager not starting:**
+```bash
+# Check PM2 status
+pm2 status
 
-### Projects Not Starting
-Ensure:
-- Sufficient system memory
-- Available disk space
-- No conflicting processes on assigned ports
+# View logs
+pm2 logs nextjs-project-manager
+
+# Check Node.js version
+node --version  # Should be 16+
+```
+
+**Port conflicts:**
+```bash
+# Check what's using ports
+sudo netstat -tlnp | grep :3001
+
+# Kill conflicting processes
+sudo kill -9 <PID>
+```
+
+**Build failures:**
+```bash
+# Check disk space
+df -h
+
+# Check memory
+free -h
+
+# View detailed logs
+pm2 logs --lines 50
+```
+
+### Recovery
+```bash
+# Complete restart
+pm2 delete all
+pm2 start ecosystem.config.js
+pm2 save
+
+# Reset PM2
+pm2 kill
+pm2 start ecosystem.config.js
+pm2 save
+```
+
+## Environment Variables
+
+Create `.env` file for configuration:
+```env
+NODE_ENV=production
+PORT=3001
+PROJECTS_DIR=/home/projects
+BASE_PORT=3000
+MAX_PROJECTS=50
+```
+
+## Postman Collection
+
+Import `Postman_Collection.json` for ready-to-use API testing.
+
+## Support
+
+- Check PM2 logs for errors
+- Monitor system resources
+- Ensure sufficient disk space for projects
+- Verify network connectivity for API access
