@@ -3,14 +3,19 @@ const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const axios = require('axios');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 const PROJECTS_DIR = '/home/projects';
-const BASE_PORT = 5000;
+const BASE_PORT = 5001;
 const MAX_PROJECTS = 50;
+
+// GitHub configuration
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+const GITHUB_USERNAME = process.env.GITHUB_USERNAME || '';
 
 // Track used ports
 const usedPorts = new Set();
@@ -32,6 +37,54 @@ function getAvailablePort() {
   return null;
 }
 
+// Create GitHub repository and connect to project
+async function createGitHubRepo(projectName, projectPath) {
+  if (!GITHUB_TOKEN || !GITHUB_USERNAME) {
+    console.log('GitHub credentials not configured, skipping repo creation');
+    return null;
+  }
+
+  try {
+    console.log(`Creating GitHub repository: ${projectName}`);
+    
+    // Create repository via GitHub API
+    const response = await axios.post(`https://api.github.com/user/repos`, {
+      name: projectName,
+      description: `Next.js project: ${projectName}`,
+      private: false,
+      auto_init: true
+    }, {
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    const repoUrl = response.data.clone_url;
+    console.log(`GitHub repository created: ${repoUrl}`);
+
+    // Initialize git in project directory
+    console.log(`Initializing git repository in ${projectPath}`);
+    execSync('git init', { cwd: projectPath, stdio: 'inherit' });
+    execSync('git add .', { cwd: projectPath, stdio: 'inherit' });
+    execSync('git commit -m "Initial commit - Next.js project created"', { cwd: projectPath, stdio: 'inherit' });
+
+    // Add remote and push
+    execSync(`git remote add origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
+    execSync('git push -u origin main', { cwd: projectPath, stdio: 'inherit' });
+
+    console.log(`Project pushed to GitHub: ${repoUrl}`);
+    return {
+      url: repoUrl,
+      webUrl: response.data.html_url
+    };
+
+  } catch (error) {
+    console.error(`Failed to create GitHub repository: ${error.message}`);
+    return null;
+  }
+}
+
 // Create Next.js project
 async function createProject(projectName) {
   const projectPath = path.join(PROJECTS_DIR, projectName);
@@ -42,14 +95,14 @@ async function createProject(projectName) {
     
     // Create Next.js project
     console.log(`Creating Next.js project: ${projectName}`);
-    execSync(`npx create-next-app@latest ${projectPath} --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"`, {
+    execSync(`npx create-next-app@latest ${projectPath} --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --no-install`, {
       stdio: 'inherit',
       cwd: PROJECTS_DIR
     });
     
-    // Install dependencies
+    // Install dependencies with legacy peer deps
     console.log(`Installing dependencies for ${projectName}`);
-    execSync('npm install', {
+    execSync('npm install --legacy-peer-deps', {
       stdio: 'inherit',
       cwd: projectPath
     });
@@ -64,24 +117,9 @@ async function createProject(projectName) {
 // Build and run project
 async function buildAndRunProject(projectName, projectPath, port) {
   try {
-    // Build project
-    console.log(`Building ${projectName} on port ${port}`);
-    try {
-      const buildOutput = execSync('npm run build', {
-        cwd: projectPath,
-        encoding: 'utf8',
-        stdio: 'pipe'
-      });
-      console.log(`Build output for ${projectName}:`, buildOutput);
-    } catch (buildError) {
-      console.error(`Build failed for ${projectName}:`, buildError.stdout);
-      console.error(`Build stderr for ${projectName}:`, buildError.stderr);
-      throw buildError;
-    }
-    
-    // Start project
-    console.log(`Starting ${projectName} on port ${port}`);
-    const child = spawn('npm', ['run', 'start', '--', '-p', port], {
+    // Skip build for development mode - start directly
+    console.log(`Starting ${projectName} in development mode on port ${port}`);
+    const child = spawn('npm', ['run', 'dev', '--', '-p', port], {
       cwd: projectPath,
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true
@@ -142,13 +180,17 @@ app.post('/api/create-project', async (req, res) => {
     // Create and setup project
     const projectPath = await createProject(projectName);
     
+    // Create GitHub repository
+    const githubRepo = await createGitHubRepo(projectName, projectPath);
+    
     // Build and run project
     const projectInfo = await buildAndRunProject(projectName, projectPath, port);
     
     runningProjects.set(projectName, {
       ...projectInfo,
       path: projectPath,
-      createdAt: new Date()
+      createdAt: new Date(),
+      githubRepo
     });
     
     res.json({
@@ -156,7 +198,8 @@ app.post('/api/create-project', async (req, res) => {
       projectName,
       port,
       url: `http://localhost:${port}`,
-      message: `Project ${projectName} created and running on port ${port}`
+      githubRepo,
+      message: `Project ${projectName} created and running on port ${port}${githubRepo ? ' with GitHub repository' : ''}`
     });
     
   } catch (error) {
