@@ -103,11 +103,14 @@ async function createGitHubRepo(projectName, projectPath) {
     // Set branch to main
     execSync('git branch -M main', { cwd: projectPath, stdio: 'inherit' });
 
+    // Build authenticated URL to avoid push failures
+    const authenticatedRepoUrl = repoUrl.replace('https://', `https://${GITHUB_TOKEN}@`);
+
     // Add remote and push (handle if origin already exists)
     try {
-      execSync(`git remote add origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
+      execSync(`git remote add origin ${authenticatedRepoUrl}`, { cwd: projectPath, stdio: 'inherit' });
     } catch (e) {
-      execSync(`git remote set-url origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
+      execSync(`git remote set-url origin ${authenticatedRepoUrl}`, { cwd: projectPath, stdio: 'inherit' });
     }
 
     // Attempt to push to main
