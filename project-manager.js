@@ -45,6 +45,19 @@ app.delete('/api/projects/:name', (req, res) => {
   }
 });
 
+// Get site content (for the generated site to fetch)
+app.get('/api/sites/:name/content', async (req, res) => {
+  const { name } = req.params;
+  try {
+    const { WebsiteDesign } = require('./utils/db');
+    const design = await WebsiteDesign.findOne({ projectName: name });
+    if (!design) return res.status(404).json({ error: 'Site not found' });
+    res.json(design);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch site content' });
+  }
+});
+
 // Build specific project
 app.post('/api/projects/:name/build', async (req, res) => {
   const { name } = req.params;

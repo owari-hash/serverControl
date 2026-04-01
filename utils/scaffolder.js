@@ -1,83 +1,67 @@
 const fs = require('fs');
 const path = require('path');
+const { ComponentLibrary } = require('./db');
 
 class ScaffolderEngine {
   constructor() {}
 
   async generateSiteCode(design, projectPath) {
-    console.log(`[Scaffolder] Generating code for ${design.projectName} at ${projectPath}...`);
+    console.log(`[Scaffolder] Generating dynamic code for ${design.projectName}...`);
+    
     this._ensureDirectories(projectPath);
-    this._generateGlobalComponents(design, projectPath);
+
+    // 1. Fetch all required components from DB
+    const componentTypes = new Set(['Navbar']); // Always include Navbar
+    design.pages.forEach(page => {
+      page.components.forEach(comp => componentTypes.add(comp.type));
+    });
+
+    const components = await ComponentLibrary.find({ type: { $in: Array.from(componentTypes) } });
+    const componentMap = new Map(components.map(c => [c.type, c.code]));
+
+    // 2. Generate Components from DB templates
+    this._generateGlobalComponents(componentMap, projectPath);
+
+    // 3. Generate Data Fetching Library (The Dynamic Link)
+    this._generateDataLib(design, projectPath);
+
+    // 4. Generate Pages
     this._generatePages(design, projectPath);
+
+    // 5. Generate Layout & Styles
     this._generateLayout(design, projectPath);
     this._generateGlobalsCss(design, projectPath);
-    console.log(`[Scaffolder] Code generation complete for ${design.projectName}.`);
+
+    console.log(`[Scaffolder] Dynamic generation complete.`);
   }
 
   _ensureDirectories(projectPath) {
     const dirs = [
       path.join(projectPath, 'src', 'components'),
       path.join(projectPath, 'src', 'app'),
+      path.join(projectPath, 'src', 'lib')
     ];
     dirs.forEach((dir) => {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     });
   }
 
-  _generateGlobalComponents(design, projectPath) {
+  _generateGlobalComponents(componentMap, projectPath) {
     const componentsDir = path.join(projectPath, 'src', 'components');
+    
+    for (const [type, code] of componentMap.entries()) {
+      fs.writeFileSync(path.join(componentsDir, type + '.tsx'), code);
+    }
+  }
 
-    // Navbar
-    const navbarContent = "import Link from 'next/link';\n" +
-      "export default function Navbar() {\n" +
-      "  return (\n" +
-      "    <nav className='flex items-center justify-between p-6 bg-white border-b'>\n" +
-      "      <Link href='/' className='text-xl font-bold'>" + design.projectName + "</Link>\n" +
-      "      <div className='space-x-4'>\n" +
-      design.pages.map(page => "        <Link href='" + page.route + "' className='hover:text-blue-600'>" + page.title + "</Link>").join('\n') +
-      "\n      </div>\n" +
-      "    </nav>\n" +
-      "  );\n" +
+  _generateDataLib(design, projectPath) {
+    const libDir = path.join(projectPath, 'src', 'lib');
+    const content = "export async function getSiteData() {\n" +
+      "  const res = await fetch('http://localhost:4000/api/sites/" + design.projectName + "/content', { cache: 'no-store' });\n" +
+      "  if (!res.ok) throw new Error('Failed to fetch site data');\n" +
+      "  return res.json();\n" +
       "}";
-    fs.writeFileSync(path.join(componentsDir, 'Navbar.tsx'), navbarContent);
-
-    // Hero
-    const heroContent = "interface HeroProps {\n" +
-      "  title: string;\n" +
-      "  subtitle: string;\n" +
-      "  ctaText?: string;\n" +
-      "}\n" +
-      "export default function Hero({ title, subtitle, ctaText }: HeroProps) {\n" +
-      "  return (\n" +
-      "    <section className='py-20 text-center bg-gray-50 border-b'>\n" +
-      "      <h1 className='mb-4 text-5xl font-extrabold tracking-tight'>{title}</h1>\n" +
-      "      <p className='mb-8 text-xl text-gray-600'>{subtitle}</p>\n" +
-      "      {ctaText && <button className='px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg'>{ctaText}</button>}\n" +
-      "    </section>\n" +
-      "  );\n" +
-      "}";
-    fs.writeFileSync(path.join(componentsDir, 'Hero.tsx'), heroContent);
-
-    // Features
-    const featuresContent = "interface Feature {\n" +
-      "  title: string;\n" +
-      "  description: string;\n" +
-      "}\n" +
-      "export default function Features({ features }: { features: Feature[] }) {\n" +
-      "  return (\n" +
-      "    <section className='py-16 bg-white'>\n" +
-      "      <div className='grid grid-cols-1 gap-8 md:grid-cols-3 max-w-6xl mx-auto px-4'>\n" +
-      "        {features.map((feature, i) => (\n" +
-      "          <div key={i} className='p-6 border rounded-xl hover:shadow-lg transition-shadow'>\n" +
-      "            <h3 className='mb-2 text-xl font-bold'>{feature.title}</h3>\n" +
-      "            <p className='text-gray-600'>{feature.description}</p>\n" +
-      "          </div>\n" +
-      "        ))}\n" +
-      "      </div>\n" +
-      "    </section>\n" +
-      "  );\n" +
-      "}";
-    fs.writeFileSync(path.join(componentsDir, 'Features.tsx'), featuresContent);
+    fs.writeFileSync(path.join(libDir, 'data.ts'), content);
   }
 
   _generatePages(design, projectPath) {
@@ -87,22 +71,32 @@ class ScaffolderEngine {
       const pageDir = page.route === '/' ? appDir : path.join(appDir, page.route);
       if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
 
-      const imports = ["import Navbar from '@/components/Navbar';"];
-      const body = [];
-
-      page.components.forEach((comp) => {
-        imports.push("import " + comp.type + " from '@/components/" + comp.type + "';");
-        const props = comp.props instanceof Map ? Object.fromEntries(comp.props) : comp.props;
-        const propsStr = JSON.stringify(props || {}, null, 2);
-        body.push("<" + comp.type + " {...(" + propsStr + ")} />");
+      // Identify which components this page actually needs
+      const usedTypes = new Set(page.components.map(c => c.type));
+      
+      const imports = [
+        "import Navbar from '@/components/Navbar';",
+        "import { getSiteData } from '@/lib/data';"
+      ];
+      usedTypes.forEach(type => {
+        imports.push("import " + type + " from '@/components/" + type + "';");
       });
 
       const pageContent = imports.join('\n') + "\n\n" +
-        "export default function Page() {\n" +
+        "export default async function Page() {\n" +
+        "  const data = await getSiteData();\n" +
+        "  const pageData = data.pages.find((p: any) => p.route === '" + page.route + "');\n\n" +
+        "  // Map of component types to their imported React components\n" +
+        "  const ComponentMap: Record<string, any> = {\n" +
+        Array.from(usedTypes).map(t => "    " + t + ": " + t).join(',\n') + "\n" +
+        "  };\n\n" +
         "  return (\n" +
         "    <main>\n" +
-        "      <Navbar />\n" +
-        "      " + body.join('\n      ') + "\n" +
+        "      <Navbar projectName={data.projectName} pages={data.pages} />\n" +
+        "      {pageData.components.map((comp: any, i: number) => {\n" +
+        "        const Component = ComponentMap[comp.type];\n" +
+        "        return <Component key={i} {...comp.props} />;\n" +
+        "      })}\n" +
         "    </main>\n" +
         "  );\n" +
         "}";
@@ -113,12 +107,7 @@ class ScaffolderEngine {
 
   _generateLayout(design, projectPath) {
     const layoutPath = path.join(projectPath, 'src', 'app', 'layout.tsx');
-    const layoutContent = "import type { Metadata } from 'next';\n" +
-      "import './globals.css';\n\n" +
-      "export const metadata: Metadata = {\n" +
-      "  title: '" + design.projectName + "',\n" +
-      "  description: 'Generated by Website Generator',\n" +
-      "};\n\n" +
+    const layoutContent = "import './globals.css';\n\n" +
       "export default function RootLayout({ children }: { children: React.ReactNode }) {\n" +
       "  return (\n" +
       "    <html lang='en'>\n" +
@@ -135,14 +124,7 @@ class ScaffolderEngine {
     const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
     const cssContent = "@tailwind base;\n" +
       "@tailwind components;\n" +
-      "@tailwind utilities;\n\n" +
-      ":root {\n" +
-      "  --primary: " + design.theme.primaryColor + ";\n" +
-      "  --secondary: " + design.theme.secondaryColor + ";\n" +
-      "}\n\n" +
-      "body {\n" +
-      "  font-family: " + design.theme.fontFamily + ", sans-serif;\n" +
-      "}";
+      "@tailwind utilities;";
     fs.writeFileSync(cssPath, cssContent);
   }
 }
