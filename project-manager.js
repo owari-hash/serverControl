@@ -4,14 +4,16 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const axios = require('axios');
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PROJECTS_DIR = '/home/projects';
-const BASE_PORT = 5001;
-const MAX_PROJECTS = 50;
+const PROJECTS_DIR = process.env.PROJECTS_DIR || '/home/projects';
+const BASE_PORT = parseInt(process.env.BASE_PORT || '5001');
+const MAX_PROJECTS = parseInt(process.env.MAX_PROJECTS || '50');
+const PM_PORT = parseInt(process.env.PORT || '4000');
 
 // GitHub configuration
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -243,7 +245,7 @@ app.delete('/api/projects/:name', (req, res) => {
   }
 });
 
-const PORT = 4000;
+const PORT = PM_PORT;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Project Manager API running on port ${PORT}`);
   console.log(`POST /api/create-project - Create new Next.js project`);

@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# PM2 Logs
+logs/
+*.log
+
+# Project directories (if they are stored locally)
+/home/projects
+projects/
+
+# OS files
+.DS_Store
+Thumbs.db
