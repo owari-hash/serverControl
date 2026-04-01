@@ -1,0 +1,150 @@
+const fs = require('fs');
+const path = require('path');
+
+class ScaffolderEngine {
+  constructor() {}
+
+  async generateSiteCode(design, projectPath) {
+    console.log(`[Scaffolder] Generating code for ${design.projectName} at ${projectPath}...`);
+    this._ensureDirectories(projectPath);
+    this._generateGlobalComponents(design, projectPath);
+    this._generatePages(design, projectPath);
+    this._generateLayout(design, projectPath);
+    this._generateGlobalsCss(design, projectPath);
+    console.log(`[Scaffolder] Code generation complete for ${design.projectName}.`);
+  }
+
+  _ensureDirectories(projectPath) {
+    const dirs = [
+      path.join(projectPath, 'src', 'components'),
+      path.join(projectPath, 'src', 'app'),
+    ];
+    dirs.forEach((dir) => {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    });
+  }
+
+  _generateGlobalComponents(design, projectPath) {
+    const componentsDir = path.join(projectPath, 'src', 'components');
+
+    // Navbar
+    const navbarContent = "import Link from 'next/link';\n" +
+      "export default function Navbar() {\n" +
+      "  return (\n" +
+      "    <nav className='flex items-center justify-between p-6 bg-white border-b'>\n" +
+      "      <Link href='/' className='text-xl font-bold'>" + design.projectName + "</Link>\n" +
+      "      <div className='space-x-4'>\n" +
+      design.pages.map(page => "        <Link href='" + page.route + "' className='hover:text-blue-600'>" + page.title + "</Link>").join('\n') +
+      "\n      </div>\n" +
+      "    </nav>\n" +
+      "  );\n" +
+      "}";
+    fs.writeFileSync(path.join(componentsDir, 'Navbar.tsx'), navbarContent);
+
+    // Hero
+    const heroContent = "interface HeroProps {\n" +
+      "  title: string;\n" +
+      "  subtitle: string;\n" +
+      "  ctaText?: string;\n" +
+      "}\n" +
+      "export default function Hero({ title, subtitle, ctaText }: HeroProps) {\n" +
+      "  return (\n" +
+      "    <section className='py-20 text-center bg-gray-50 border-b'>\n" +
+      "      <h1 className='mb-4 text-5xl font-extrabold tracking-tight'>{title}</h1>\n" +
+      "      <p className='mb-8 text-xl text-gray-600'>{subtitle}</p>\n" +
+      "      {ctaText && <button className='px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg'>{ctaText}</button>}\n" +
+      "    </section>\n" +
+      "  );\n" +
+      "}";
+    fs.writeFileSync(path.join(componentsDir, 'Hero.tsx'), heroContent);
+
+    // Features
+    const featuresContent = "interface Feature {\n" +
+      "  title: string;\n" +
+      "  description: string;\n" +
+      "}\n" +
+      "export default function Features({ features }: { features: Feature[] }) {\n" +
+      "  return (\n" +
+      "    <section className='py-16 bg-white'>\n" +
+      "      <div className='grid grid-cols-1 gap-8 md:grid-cols-3 max-w-6xl mx-auto px-4'>\n" +
+      "        {features.map((feature, i) => (\n" +
+      "          <div key={i} className='p-6 border rounded-xl hover:shadow-lg transition-shadow'>\n" +
+      "            <h3 className='mb-2 text-xl font-bold'>{feature.title}</h3>\n" +
+      "            <p className='text-gray-600'>{feature.description}</p>\n" +
+      "          </div>\n" +
+      "        ))}\n" +
+      "      </div>\n" +
+      "    </section>\n" +
+      "  );\n" +
+      "}";
+    fs.writeFileSync(path.join(componentsDir, 'Features.tsx'), featuresContent);
+  }
+
+  _generatePages(design, projectPath) {
+    const appDir = path.join(projectPath, 'src', 'app');
+
+    design.pages.forEach((page) => {
+      const pageDir = page.route === '/' ? appDir : path.join(appDir, page.route);
+      if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
+
+      const imports = ["import Navbar from '@/components/Navbar';"];
+      const body = [];
+
+      page.components.forEach((comp) => {
+        imports.push("import " + comp.type + " from '@/components/" + comp.type + "';");
+        const props = comp.props instanceof Map ? Object.fromEntries(comp.props) : comp.props;
+        const propsStr = JSON.stringify(props || {}, null, 2);
+        body.push("<" + comp.type + " {...(" + propsStr + ")} />");
+      });
+
+      const pageContent = imports.join('\n') + "\n\n" +
+        "export default function Page() {\n" +
+        "  return (\n" +
+        "    <main>\n" +
+        "      <Navbar />\n" +
+        "      " + body.join('\n      ') + "\n" +
+        "    </main>\n" +
+        "  );\n" +
+        "}";
+
+      fs.writeFileSync(path.join(pageDir, 'page.tsx'), pageContent);
+    });
+  }
+
+  _generateLayout(design, projectPath) {
+    const layoutPath = path.join(projectPath, 'src', 'app', 'layout.tsx');
+    const layoutContent = "import type { Metadata } from 'next';\n" +
+      "import './globals.css';\n\n" +
+      "export const metadata: Metadata = {\n" +
+      "  title: '" + design.projectName + "',\n" +
+      "  description: 'Generated by Website Generator',\n" +
+      "};\n\n" +
+      "export default function RootLayout({ children }: { children: React.ReactNode }) {\n" +
+      "  return (\n" +
+      "    <html lang='en'>\n" +
+      "      <body className='antialiased min-h-screen'>\n" +
+      "        {children}\n" +
+      "      </body>\n" +
+      "    </html>\n" +
+      "  );\n" +
+      "}";
+    fs.writeFileSync(layoutPath, layoutContent);
+  }
+
+  _generateGlobalsCss(design, projectPath) {
+    const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
+    const cssContent = "@tailwind base;\n" +
+      "@tailwind components;\n" +
+      "@tailwind utilities;\n\n" +
+      ":root {\n" +
+      "  --primary: " + design.theme.primaryColor + ";\n" +
+      "  --secondary: " + design.theme.secondaryColor + ";\n" +
+      "}\n\n" +
+      "body {\n" +
+      "  font-family: " + design.theme.fontFamily + ", sans-serif;\n" +
+      "}";
+    fs.writeFileSync(cssPath, cssContent);
+  }
+}
+
+module.exports = new ScaffolderEngine();
