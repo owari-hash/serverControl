@@ -64,7 +64,8 @@ class ProjectManager {
     if (!design) throw new Error(`Design for ${projectName} not found in database`);
 
     // 2. Create the project foundation
-    const projectPath = await this.createNewProject(projectName);
+    const projectInfo = await this.createNewProject(projectName);
+    const projectPath = projectInfo.path;
 
     // 3. Generate the production-ready code
     await scaffolder.generateSiteCode(design, projectPath);
