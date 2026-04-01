@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 const PROJECTS_DIR = '/home/projects';
-const BASE_PORT = 3000;
+const BASE_PORT = 5000;
 const MAX_PROJECTS = 50;
 
 // Track used ports
@@ -192,7 +192,7 @@ app.delete('/api/projects/:name', (req, res) => {
   }
 });
 
-const PORT = 3001;
+const PORT = 4000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Project Manager API running on port ${PORT}`);
   console.log(`POST /api/create-project - Create new Next.js project`);
