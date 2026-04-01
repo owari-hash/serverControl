@@ -300,9 +300,18 @@ app.post('/api/projects/:name/build', async (req, res) => {
       stdio: 'pipe'
     }).toString();
     
+    // Also ensure GitHub repository exists and is updated
+    let githubRepo = null;
+    try {
+      githubRepo = await createGitHubRepo(name, projectPath);
+    } catch (repoError) {
+      console.warn(`Note: GitHub sync failed during build of ${name}:`, repoError.message);
+    }
+    
     res.json({ 
       success: true, 
-      message: `Project ${name} built successfully`,
+      message: `Project ${name} built successfully${githubRepo ? ' and synced with GitHub' : ''}`,
+      githubRepo,
       output: buildOutput
     });
   } catch (error) {
