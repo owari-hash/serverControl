@@ -282,10 +282,47 @@ app.delete('/api/projects/:name', (req, res) => {
   }
 });
 
+// Build a specific project
+app.post('/api/projects/:name/build', async (req, res) => {
+  const { name } = req.params;
+  const projectPath = path.join(PROJECTS_DIR, name);
+  
+  if (!fs.existsSync(projectPath)) {
+    return res.status(404).json({ error: 'Project directory not found' });
+  }
+
+  try {
+    console.log(`Building project: ${name}`);
+    // Use execSync for simplicity as it returns the output directly
+    const buildOutput = execSync('npm run build', {
+      cwd: projectPath,
+      env: { ...process.env, NODE_ENV: 'production' },
+      stdio: 'pipe'
+    }).toString();
+    
+    res.json({ 
+      success: true, 
+      message: `Project ${name} built successfully`,
+      output: buildOutput
+    });
+  } catch (error) {
+    const errorOutput = error.stdout ? error.stdout.toString() : '';
+    const errMessage = error.stderr ? error.stderr.toString() : error.message;
+    
+    console.error(`Error building project ${name}:`, errMessage);
+    res.status(500).json({ 
+      error: 'Failed to build project', 
+      details: errMessage,
+      output: errorOutput
+    });
+  }
+});
+
 const PORT = PM_PORT;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Project Manager API running on port ${PORT}`);
   console.log(`POST /api/create-project - Create new Next.js project`);
   console.log(`GET /api/projects - List all projects`);
   console.log(`DELETE /api/projects/:name - Stop a project`);
+  console.log(`POST /api/projects/:name/build - Build a specific project`);
 });
