@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 async function seed() {
   const sampleDesign = {
-    projectName: 'my-production-site',
+    projectName: 'my-new-app7',
     theme: {
       primaryColor: '#2563eb',
       secondaryColor: '#1e293b',
