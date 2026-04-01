@@ -47,21 +47,8 @@ class ProjectManager {
     const projectPath = await createProject(projectName);
     const githubRepo = await createGitHubRepo(projectName, projectPath);
 
-    const pid = await buildAndRunProject(
-      projectName, 
-      projectPath, 
-      port,
-      (data) => console.log(`[${projectName}] ${data.toString()}`),
-      (data) => console.error(`[${projectName}] ${data.toString()}`),
-      () => {
-        this.usedPorts.delete(port);
-        this.runningProjects.delete(projectName);
-      }
-    );
-
     const projectInfo = {
       port,
-      pid,
       path: projectPath,
       createdAt: new Date(),
       githubRepo
