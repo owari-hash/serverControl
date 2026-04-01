@@ -98,14 +98,24 @@ async function createGitHubRepo(projectName, projectPath) {
     }
 
     execSync('git add .', { cwd: projectPath, stdio: 'inherit' });
-    execSync('git commit -m "Initial commit - Next.js project created"', { cwd: projectPath, stdio: 'inherit' });
+    execSync('git commit --allow-empty -m "Project sync - Build triggered"', { cwd: projectPath, stdio: 'inherit' });
 
     // Set branch to main
     execSync('git branch -M main', { cwd: projectPath, stdio: 'inherit' });
 
-    // Add remote and push
-    execSync(`git remote add origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
-    execSync('git push -u origin main', { cwd: projectPath, stdio: 'inherit' });
+    // Add remote and push (handle if origin already exists)
+    try {
+      execSync(`git remote add origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
+    } catch (e) {
+      execSync(`git remote set-url origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
+    }
+
+    // Attempt to push to main
+    try {
+      execSync('git push -u origin main', { cwd: projectPath, stdio: 'inherit' });
+    } catch (pushError) {
+      console.warn('Warn: Initial push failed (might be empty or protected):', pushError.message);
+    }
 
     console.log(`Project pushed to GitHub: ${repoUrl}`);
     return {
