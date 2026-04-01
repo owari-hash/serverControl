@@ -302,26 +302,34 @@ app.post('/api/projects/:name/build', async (req, res) => {
   }
 
   try {
-    console.log(`Building project: ${name}`);
-    // Use execSync for simplicity as it returns the output directly
+    console.log(`[${name}] Build started...`);
+    
+    // Explicitly set production environment for build
+    const buildEnv = { ...process.env, NODE_ENV: 'production' };
+    
+    // Use execSync for the build (this blocks until done)
     const buildOutput = execSync('npm run build', {
       cwd: projectPath,
-      env: { ...process.env, NODE_ENV: 'production' },
+      env: buildEnv,
       stdio: 'pipe'
     }).toString();
+    
+    console.log(`[${name}] Build completed successfully.`);
+    console.log(`[${name}] Starting GitHub synchronization...`);
     
     // Also ensure GitHub repository exists and is updated
     let githubRepo = null;
     try {
       githubRepo = await createGitHubRepo(name, projectPath);
+      console.log(`[${name}] GitHub synchronization finished: ${githubRepo ? 'Success' : 'Skipped/Failed'}`);
     } catch (repoError) {
-      console.warn(`Note: GitHub sync failed during build of ${name}:`, repoError.message);
+      console.warn(`[${name}] GitHub sync failed:`, repoError.message);
     }
     
     res.json({ 
       success: true, 
       message: `Project ${name} built successfully${githubRepo ? ' and synced with GitHub' : ''}`,
-      githubRepo,
+      githubRepo: githubRepo,
       output: buildOutput
     });
   } catch (error) {
