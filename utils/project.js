@@ -8,9 +8,12 @@ async function createProject(projectName) {
   const projectPath = path.join(PROJECTS_DIR, projectName);
   
   try {
-    if (!fs.existsSync(projectPath)) {
-      fs.mkdirSync(projectPath, { recursive: true });
+    if (fs.existsSync(projectPath)) {
+      console.log(`Project directory ${projectName} already exists. Skipping npx create-next-app...`);
+      return projectPath;
     }
+    
+    fs.mkdirSync(projectPath, { recursive: true });
     
     console.log(`Creating Next.js project: ${projectName}`);
     execSync(`npx create-next-app@latest ${projectPath} --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --no-install`, {
