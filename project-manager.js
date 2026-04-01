@@ -47,29 +47,61 @@ async function createGitHubRepo(projectName, projectPath) {
   }
 
   try {
-    console.log(`Creating GitHub repository: ${projectName}`);
-    
-    // Create repository via GitHub API
-    const response = await axios.post(`https://api.github.com/user/repos`, {
-      name: projectName,
-      description: `Next.js project: ${projectName}`,
-      private: false,
-      auto_init: true
-    }, {
-      headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
+    let repoUrl = '';
+    let webUrl = '';
 
-    const repoUrl = response.data.clone_url;
-    console.log(`GitHub repository created: ${repoUrl}`);
+    // Check if the repository already exists
+    try {
+      console.log(`Checking if GitHub repository ${projectName} already exists...`);
+      const checkResponse = await axios.get(`https://api.github.com/repos/${GITHUB_USERNAME}/${projectName}`, {
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      console.log(`GitHub repository already exists: ${checkResponse.data.clone_url}`);
+      repoUrl = checkResponse.data.clone_url;
+      webUrl = checkResponse.data.html_url;
+    } catch (checkError) {
+      // If 404, repository doesn't exist, so create it
+      if (checkError.response && checkError.response.status === 404) {
+        console.log(`Creating new GitHub repository: ${projectName}`);
+        const createResponse = await axios.post(`https://api.github.com/user/repos`, {
+          name: projectName,
+          description: `Next.js project: ${projectName}`,
+          private: false,
+          auto_init: false
+        }, {
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        repoUrl = createResponse.data.clone_url;
+        webUrl = createResponse.data.html_url;
+        console.log(`GitHub repository created: ${repoUrl}`);
+      } else {
+        throw checkError;
+      }
+    }
 
     // Initialize git in project directory
     console.log(`Initializing git repository in ${projectPath}`);
     execSync('git init', { cwd: projectPath, stdio: 'inherit' });
+    
+    // Configure git user if not set
+    try {
+      execSync(`git config user.email "${GITHUB_USERNAME}@users.noreply.github.com"`, { cwd: projectPath });
+      execSync(`git config user.name "${GITHUB_USERNAME}"`, { cwd: projectPath });
+    } catch (e) {
+      console.log('Warn: Failed to set local git config');
+    }
+
     execSync('git add .', { cwd: projectPath, stdio: 'inherit' });
     execSync('git commit -m "Initial commit - Next.js project created"', { cwd: projectPath, stdio: 'inherit' });
+
+    // Set branch to main
+    execSync('git branch -M main', { cwd: projectPath, stdio: 'inherit' });
 
     // Add remote and push
     execSync(`git remote add origin ${repoUrl}`, { cwd: projectPath, stdio: 'inherit' });
@@ -78,7 +110,7 @@ async function createGitHubRepo(projectName, projectPath) {
     console.log(`Project pushed to GitHub: ${repoUrl}`);
     return {
       url: repoUrl,
-      webUrl: response.data.html_url
+      webUrl: webUrl
     };
 
   } catch (error) {
@@ -121,10 +153,15 @@ async function buildAndRunProject(projectName, projectPath, port) {
   try {
     // Skip build for development mode - start directly
     console.log(`Starting ${projectName} in development mode on port ${port}`);
+    
+    // Explicitly set NODE_ENV to development for the child process
+    const projectEnv = { ...process.env, NODE_ENV: 'development' };
+    
     const child = spawn('npm', ['run', 'dev', '--', '-p', port], {
       cwd: projectPath,
       stdio: ['ignore', 'pipe', 'pipe'],
-      detached: true
+      detached: true,
+      env: projectEnv
     });
     
     // Handle output
