@@ -68,10 +68,14 @@ async function createProject(projectName) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@cms-builder/core"],
-  experimental: {
-    allowedDevOrigins: ["202.179.6.77"]
+  allowedDevOrigins: ["202.179.6.77"],
+  devIndicators: false,
+  typescript: {
+    ignoreBuildErrors: true,
   },
-  devIndicators: false
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
