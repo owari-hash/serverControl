@@ -16,8 +16,22 @@ class ScaffolderEngine {
       page.components.forEach(comp => componentTypes.add(comp.type));
     });
 
-    const components = await ComponentLibrary.find({ type: { $in: Array.from(componentTypes) } });
-    const componentMap = new Map(components.map(c => [c.type, c.code]));
+    const components = await ComponentLibrary.find({ 
+      type: { $in: Array.from(componentTypes) },
+      $or: [
+        { scope: 'GLOBAL' },
+        { scope: 'PROJECT', projectName: design.projectName }
+      ]
+    });
+
+    // Strategy: Project components override global ones if types match
+    const componentMap = new Map();
+    components.forEach(c => {
+      // If project component exists, it will overwrite the global one in the Map
+      if (!componentMap.has(c.type) || c.scope === 'PROJECT') {
+        componentMap.set(c.type, c.code);
+      }
+    });
 
     // 2. Generate Components from DB templates
     this._generateGlobalComponents(componentMap, projectPath);

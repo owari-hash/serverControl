@@ -111,32 +111,43 @@ app.get('/api/designs', async (req, res) => {
 
 // Create or update a component
 app.post('/api/components', async (req, res) => {
-  const { type, category, code, description, defaultProps } = req.body;
+  const { type, category, code, description, defaultProps, projectName } = req.body;
   if (!type || !code || !category) {
     return res.status(400).json({ error: 'Type, Category, and Code are required' });
   }
 
+  const scope = projectName ? 'PROJECT' : 'GLOBAL';
+
   try {
     const { ComponentLibrary } = require('./utils/db');
     const component = await ComponentLibrary.findOneAndUpdate(
-      { type },
-      { type, category, code, description, defaultProps },
+      { type, projectName: projectName || null },
+      { type, category, code, description, defaultProps, scope, projectName: projectName || null },
       { upsert: true, new: true }
     );
-    res.json({ success: true, message: `Component ${type} [${category}] saved`, component });
+    res.json({ success: true, message: `Component ${type} [${scope}${projectName ? ':' + projectName : ''}] saved`, component });
   } catch (error) {
     res.status(500).json({ error: 'Failed to save component', details: error.message });
   }
 });
 
-// List all components (with category filtering)
+// List all components (with scope/category filtering)
 app.get('/api/components', async (req, res) => {
-  const { category } = req.query;
-  const filter = category ? { category } : {};
+  const { category, projectName } = req.query;
   
+  // Logic: Return Global components OR components for the specific project
+  const query = {
+    $or: [
+      { scope: 'GLOBAL' },
+      { scope: 'PROJECT', projectName: projectName }
+    ]
+  };
+
+  if (category) query.category = category;
+
   try {
     const { ComponentLibrary } = require('./utils/db');
-    const components = await ComponentLibrary.find(filter, 'type category description updatedAt');
+    const components = await ComponentLibrary.find(query, 'type category scope projectName description updatedAt');
     res.json(components);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch components' });
