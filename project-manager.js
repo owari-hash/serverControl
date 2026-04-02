@@ -96,6 +96,30 @@ app.post('/api/sites/generate', async (req, res) => {
   }
 });
 
+// --- Website Design API ---
+
+// Create or update a full site design (projectName in body or URL)
+const saveDesign = async (req, res) => {
+  const projectName = req.params.name || req.body.projectName;
+  const { theme, pages, domain } = req.body;
+  if (!projectName) return res.status(400).json({ error: 'Project Name is required' });
+
+  try {
+    const { WebsiteDesign } = require('./utils/db');
+    const design = await WebsiteDesign.findOneAndUpdate(
+      { projectName },
+      { projectName, theme, pages, domain, updatedAt: Date.now() },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, message: `Design for ${projectName} saved`, design });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save design', details: error.message });
+  }
+};
+
+app.post('/api/designs', saveDesign);
+app.post('/api/designs/:name', saveDesign);
+
 // List available designs in DB (for reference)
 app.get('/api/designs', async (req, res) => {
   try {
