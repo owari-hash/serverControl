@@ -15,11 +15,39 @@ async function createProject(projectName) {
     
     fs.mkdirSync(projectPath, { recursive: true });
     
-    console.log(`Creating Next.js project: ${projectName}`);
-    execSync(`npx create-next-app@latest ${projectPath} --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --no-install`, {
-      stdio: 'inherit',
-      cwd: PROJECTS_DIR
-    });
+    const templatePath = path.resolve(__dirname, '../../clientCmsTemplate');
+    
+    // 1. Ensure template exists (Clone if missing)
+    if (!fs.existsSync(templatePath)) {
+      console.log(`Template not found at ${templatePath}. Cloning from GitHub...`);
+      const repoUrl = 'https://github.com/owari-hash/cmsTemplate.git';
+      // Use GITHUB_TOKEN if available for potentially private repos
+      const authenticatedUrl = process.env.GITHUB_TOKEN 
+        ? repoUrl.replace('https://', `https://${process.env.GITHUB_TOKEN}@`)
+        : repoUrl;
+        
+      execSync(`git clone ${authenticatedUrl} ${templatePath}`, { stdio: 'inherit' });
+    }
+
+    console.log(`Creating project ${projectName} from template: ${templatePath}`);
+    
+    // 2. Copy template recursively (excluding node_modules and .next)
+    const copyRecursiveSync = (src, dest) => {
+      const exists = fs.existsSync(src);
+      const stats = exists && fs.statSync(src);
+      const isDirectory = exists && stats.isDirectory();
+      if (isDirectory) {
+        if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+        fs.readdirSync(src).forEach((childItemName) => {
+          if (childItemName === 'node_modules' || childItemName === '.next' || childItemName === '.git') return;
+          copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+        });
+      } else {
+        fs.copyFileSync(src, dest);
+      }
+    };
+
+    copyRecursiveSync(templatePath, projectPath);
     
     console.log(`Installing dependencies for ${projectName}`);
     
