@@ -36,6 +36,12 @@ class ProjectManager {
   }
 
   async createNewProject(projectName) {
+    // Sanitize project name: lowercase, only alphanumeric and hyphens
+    projectName = projectName.toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
     if (this.runningProjects.has(projectName)) {
       throw new Error('Project already exists');
     }

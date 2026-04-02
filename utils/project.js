@@ -62,15 +62,16 @@ async function createProject(projectName) {
     const npmrcContent = 'registry=http://202.179.6.77:4873/\n//202.179.6.77:4873/:_always-auth=false';
     fs.writeFileSync(npmrcPath, npmrcContent);
 
-    // 3. Setup next.config.js to transpile the framework
+    // 3. Setup next.config.js to transpile the framework and allow HMR
     const nextConfigPath = path.join(projectPath, 'next.config.mjs');
     const nextConfigContent = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@cms-builder/core"],
   experimental: {
-    serverActions: true
-  }
+    allowedDevOrigins: ["202.179.6.77"]
+  },
+  devIndicators: false
 };
 
 export default nextConfig;

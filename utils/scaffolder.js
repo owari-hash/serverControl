@@ -64,13 +64,24 @@ class ScaffolderEngine {
   _generateGlobalComponents(componentMap, projectPath) {
     const componentsDir = path.join(projectPath, 'src', 'components');
     
-    // Create an index file to export all components for the framework
-    let indexContent = '';
     for (const [type, code] of componentMap.entries()) {
       fs.writeFileSync(path.join(componentsDir, type + '.tsx'), code);
-      indexContent += `export { default as ${type} } from './${type}';\n`;
     }
-    fs.writeFileSync(path.join(componentsDir, 'index.ts'), indexContent);
+
+    this._generateComponentsIndex(componentMap, projectPath);
+  }
+
+  _generateComponentsIndex(componentMap, projectPath) {
+    const indexPath = path.join(projectPath, 'src', 'components', 'index.ts');
+    let content = '';
+    componentMap.forEach((_, type) => {
+      content += `export { default as ${type} } from './${type}';\n`;
+    });
+    
+    // Safety: Ensure file is a module even if empty
+    content += 'export {};';
+    
+    fs.writeFileSync(indexPath, content);
   }
 
   _generateDataLib(design, projectPath) {
