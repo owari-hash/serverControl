@@ -157,6 +157,8 @@ app.get('/api/components', async (req, res) => {
 // Start Server
 app.listen(config.PM_PORT, '0.0.0.0', () => {
   console.log(`Project Manager API running on port ${config.PM_PORT}`);
+  console.log(`- POST   /api/designs              : Create/Update a site design`);
+  console.log(`- GET    /api/designs              : List designs in database`);
   console.log(`- POST   /api/components           : Add/Update a component template`);
   console.log(`- GET    /api/components           : List all component templates`);
   console.log(`- POST   /api/create-project       : Create new Next.js project`);
@@ -164,5 +166,4 @@ app.listen(config.PM_PORT, '0.0.0.0', () => {
   console.log(`- DELETE /api/projects/:name       : Stop a project`);
   console.log(`- POST   /api/projects/:name/build : Build and sync project`);
   console.log(`- POST   /api/sites/generate       : Generate site from DB design`);
-  console.log(`- GET    /api/designs              : List designs in database`);
 });
