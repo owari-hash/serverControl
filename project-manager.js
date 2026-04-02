@@ -107,9 +107,47 @@ app.get('/api/designs', async (req, res) => {
   }
 });
 
+// --- Component Library API ---
+
+// Create or update a component
+app.post('/api/components', async (req, res) => {
+  const { type, category, code, description, defaultProps } = req.body;
+  if (!type || !code || !category) {
+    return res.status(400).json({ error: 'Type, Category, and Code are required' });
+  }
+
+  try {
+    const { ComponentLibrary } = require('./utils/db');
+    const component = await ComponentLibrary.findOneAndUpdate(
+      { type },
+      { type, category, code, description, defaultProps },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, message: `Component ${type} [${category}] saved`, component });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save component', details: error.message });
+  }
+});
+
+// List all components (with category filtering)
+app.get('/api/components', async (req, res) => {
+  const { category } = req.query;
+  const filter = category ? { category } : {};
+  
+  try {
+    const { ComponentLibrary } = require('./utils/db');
+    const components = await ComponentLibrary.find(filter, 'type category description updatedAt');
+    res.json(components);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch components' });
+  }
+});
+
 // Start Server
 app.listen(config.PM_PORT, '0.0.0.0', () => {
   console.log(`Project Manager API running on port ${config.PM_PORT}`);
+  console.log(`- POST   /api/components           : Add/Update a component template`);
+  console.log(`- GET    /api/components           : List all component templates`);
   console.log(`- POST   /api/create-project       : Create new Next.js project`);
   console.log(`- GET    /api/projects             : List all projects`);
   console.log(`- DELETE /api/projects/:name       : Stop a project`);

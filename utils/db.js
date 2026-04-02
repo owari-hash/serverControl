@@ -8,6 +8,7 @@ mongoose.connect(config.MONGODB_URI)
 
 const ComponentLibrarySchema = new mongoose.Schema({
   type: { type: String, required: true, unique: true }, // e.g. 'Hero'
+  category: { type: String, required: true }, // Navbar, Hero, etc.
   code: { type: String, required: true }, // The react code string
   description: String,
   defaultProps: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },

@@ -107,9 +107,11 @@ export default async function Page({ params }: { params: { slug?: string[] } }) 
 
   _generateGlobalsCss(design, projectPath) {
     const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
-    const cssContent = "@tailwind base;\n" +
-      "@tailwind components;\n" +
-      "@tailwind utilities;";
+    const cssContent = "@import \"tailwindcss\";\n" +
+      "\n@theme {\n" +
+      "  --color-primary: var(--primary-color);\n" +
+      "  --color-secondary: var(--secondary-color);\n" +
+      "}\n";
     fs.writeFileSync(cssPath, cssContent);
   }
 }
