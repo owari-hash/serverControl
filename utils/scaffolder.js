@@ -25,8 +25,8 @@ class ScaffolderEngine {
     // 3. Generate Data Fetching Library (The Dynamic Link)
     this._generateDataLib(design, projectPath);
 
-    // 4. Generate Pages
-    this._generatePages(design, projectPath);
+    // 4. Generate Master Catch-all Page
+    this._generateMasterPage(design, projectPath);
 
     // 5. Generate Layout & Styles
     this._generateLayout(design, projectPath);
@@ -39,6 +39,7 @@ class ScaffolderEngine {
     const dirs = [
       path.join(projectPath, 'src', 'components'),
       path.join(projectPath, 'src', 'app'),
+      path.join(projectPath, 'src', 'app', '[[...slug]]'),
       path.join(projectPath, 'src', 'lib')
     ];
     dirs.forEach((dir) => {
@@ -49,9 +50,13 @@ class ScaffolderEngine {
   _generateGlobalComponents(componentMap, projectPath) {
     const componentsDir = path.join(projectPath, 'src', 'components');
     
+    // Create an index file to export all components for the framework
+    let indexContent = '';
     for (const [type, code] of componentMap.entries()) {
       fs.writeFileSync(path.join(componentsDir, type + '.tsx'), code);
+      indexContent += `export { default as ${type} } from './${type}';\n`;
     }
+    fs.writeFileSync(path.join(componentsDir, 'index.ts'), indexContent);
   }
 
   _generateDataLib(design, projectPath) {
@@ -61,36 +66,28 @@ class ScaffolderEngine {
     // For now, we'll rely on NEXT_PUBLIC_PROJECT_NAME env variable.
   }
 
-  _generatePages(design, projectPath) {
-    const appDir = path.join(projectPath, 'src', 'app');
-
-    design.pages.forEach((page) => {
-      const pageDir = page.route === '/' ? appDir : path.join(appDir, page.route);
-      if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
-
-      const usedTypes = new Set(page.components.map(c => c.type));
-      if (page.route === '/') usedTypes.add('Navbar'); // Ensure Navbar is available for Home
-
-      const componentImports = Array.from(usedTypes)
-        .map(type => `import ${type} from '@/components/${type}';`)
-        .join('\n');
-
-      const componentMap = `const componentMap = {\n${Array.from(usedTypes).map(t => `  ${t}`).join(',\n')}\n};`;
-
-      const pageContent = `
+  _generateMasterPage(design, projectPath) {
+    const pageDir = path.join(projectPath, 'src', 'app', '[[...slug]]');
+    
+    const pageContent = `
 import { CMSPage, cms } from '@cms-builder/core';
-${componentImports}
+import * as Components from '@/components';
 
-${componentMap}
-
-export default async function Page() {
+export default async function Page({ params }: { params: { slug?: string[] } }) {
+  const route = params.slug ? '/' + params.slug.join('/') : '/';
   const design = await cms.getDesign();
-  return <CMSPage design={design} componentMap={componentMap} route="${page.route}" />;
+
+  return (
+    <CMSPage 
+      design={design} 
+      componentMap={Components} 
+      route={route} 
+    />
+  );
 }
 `.trim();
 
-      fs.writeFileSync(path.join(pageDir, 'page.tsx'), pageContent);
-    });
+    fs.writeFileSync(path.join(pageDir, 'page.tsx'), pageContent);
   }
 
   _generateLayout(design, projectPath) {
