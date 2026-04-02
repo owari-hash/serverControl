@@ -22,6 +22,35 @@ async function createProject(projectName) {
     });
     
     console.log(`Installing dependencies for ${projectName}`);
+    
+    // 1. Add @cms-builder/core as NPM dependency
+    const pkgPath = path.join(projectPath, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    pkg.dependencies['@cms-builder/core'] = '1.0.0';
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+
+    // 2. Setup .npmrc for the private registry
+    const npmrcPath = path.join(projectPath, '.npmrc');
+    const npmrcContent = 'registry=http://202.179.6.77:4873/';
+    fs.writeFileSync(npmrcPath, npmrcContent);
+
+    // 3. Setup next.config.js to transpile the framework
+    const nextConfigPath = path.join(projectPath, 'next.config.mjs');
+    const nextConfigContent = `
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@cms-builder/core"],
+};
+
+export default nextConfig;
+`.trim();
+    fs.writeFileSync(nextConfigPath, nextConfigContent);
+
+    // 3. Setup .env.local
+    const envPath = path.join(projectPath, '.env.local');
+    const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://localhost:4000/api`;
+    fs.writeFileSync(envPath, envContent);
+
     execSync('npm install --legacy-peer-deps', {
       stdio: 'inherit',
       cwd: projectPath

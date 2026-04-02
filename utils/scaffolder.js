@@ -56,12 +56,9 @@ class ScaffolderEngine {
 
   _generateDataLib(design, projectPath) {
     const libDir = path.join(projectPath, 'src', 'lib');
-    const content = "export async function getSiteData() {\n" +
-      "  const res = await fetch('http://localhost:4000/api/sites/" + design.projectName + "/content', { cache: 'no-store' });\n" +
-      "  if (!res.ok) throw new Error('Failed to fetch site data');\n" +
-      "  return res.json();\n" +
-      "}";
-    fs.writeFileSync(path.join(libDir, 'data.ts'), content);
+    // Content fetching is now handled by the framework service
+    // but we can generate a simple re-export or config file if needed.
+    // For now, we'll rely on NEXT_PUBLIC_PROJECT_NAME env variable.
   }
 
   _generatePages(design, projectPath) {
@@ -71,35 +68,26 @@ class ScaffolderEngine {
       const pageDir = page.route === '/' ? appDir : path.join(appDir, page.route);
       if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
 
-      // Identify which components this page actually needs
       const usedTypes = new Set(page.components.map(c => c.type));
-      
-      const imports = [
-        "import Navbar from '@/components/Navbar';",
-        "import { getSiteData } from '@/lib/data';"
-      ];
-      usedTypes.forEach(type => {
-        imports.push("import " + type + " from '@/components/" + type + "';");
-      });
+      if (page.route === '/') usedTypes.add('Navbar'); // Ensure Navbar is available for Home
 
-      const pageContent = imports.join('\n') + "\n\n" +
-        "export default async function Page() {\n" +
-        "  const data = await getSiteData();\n" +
-        "  const pageData = data.pages.find((p: any) => p.route === '" + page.route + "');\n\n" +
-        "  // Map of component types to their imported React components\n" +
-        "  const ComponentMap: Record<string, any> = {\n" +
-        Array.from(usedTypes).map(t => "    " + t + ": " + t).join(',\n') + "\n" +
-        "  };\n\n" +
-        "  return (\n" +
-        "    <main>\n" +
-        "      <Navbar projectName={data.projectName} pages={data.pages} />\n" +
-        "      {pageData.components.map((comp: any, i: number) => {\n" +
-        "        const Component = ComponentMap[comp.type];\n" +
-        "        return <Component key={i} {...comp.props} />;\n" +
-        "      })}\n" +
-        "    </main>\n" +
-        "  );\n" +
-        "}";
+      const componentImports = Array.from(usedTypes)
+        .map(type => `import ${type} from '@/components/${type}';`)
+        .join('\n');
+
+      const componentMap = `const componentMap = {\n${Array.from(usedTypes).map(t => `  ${t}`).join(',\n')}\n};`;
+
+      const pageContent = `
+import { CMSPage, cms } from '@cms-builder/core';
+${componentImports}
+
+${componentMap}
+
+export default async function Page() {
+  const design = await cms.getDesign();
+  return <CMSPage design={design} componentMap={componentMap} route="${page.route}" />;
+}
+`.trim();
 
       fs.writeFileSync(path.join(pageDir, 'page.tsx'), pageContent);
     });
