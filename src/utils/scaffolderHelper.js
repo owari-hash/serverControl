@@ -101,8 +101,9 @@ class ScaffolderEngine {
 import { CMSPage, cms } from '@cms-builder/core';
 import * as Components from '@/components';
 
-export default async function Page({ params }: { params: { slug?: string[] } }) {
-  const route = params.slug ? '/' + params.slug.join('/') : '/';
+export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const { slug } = await params;
+  const route = slug ? '/' + slug.join('/') : '/';
   const design = await cms.getDesign();
 
   return (
