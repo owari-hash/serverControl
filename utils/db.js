@@ -60,4 +60,36 @@ WebsiteDesignSchema.pre('save', function(next) {
 
 const WebsiteDesign = mongoose.model('WebsiteDesign', WebsiteDesignSchema);
 
-module.exports = { WebsiteDesign, ComponentLibrary };
+// Project Management Schema
+const ProjectSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  port: { type: Number, required: true },
+  path: { type: String, required: true },
+  status: { type: String, enum: ['RUNNING', 'STOPPED', 'BUILDING', 'ERROR'], default: 'STOPPED' },
+  githubRepo: String,
+  pid: Number, // Current process ID (null if not running)
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+ProjectSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+const Project = mongoose.model('Project', ProjectSchema);
+
+// Arbitrary Project Data Schema
+const ProjectDataSchema = new mongoose.Schema({
+  projectName: { type: String, required: true },
+  key: { type: String, required: true },
+  value: mongoose.Schema.Types.Mixed,
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Ensure a single key per project
+ProjectDataSchema.index({ projectName: 1, key: 1 }, { unique: true });
+
+const ProjectData = mongoose.model('ProjectData', ProjectDataSchema);
+
+module.exports = { WebsiteDesign, ComponentLibrary, Project, ProjectData };

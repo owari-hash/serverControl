@@ -68,7 +68,9 @@ async function createProject(projectName) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@cms-builder/core"],
-  allowedDevOrigins: ["202.179.6.77"],
+  experimental: {
+    allowedDevOrigins: ["202.179.6.77"],
+  },
   devIndicators: false,
   typescript: {
     ignoreBuildErrors: true,
@@ -84,7 +86,7 @@ export default nextConfig;
 
     // 3. Setup .env.local
     const envPath = path.join(projectPath, '.env.local');
-    const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://localhost:4000/api`;
+    const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://202.179.6.77:4000/api`;
     fs.writeFileSync(envPath, envContent);
 
     console.log(`[${projectName}] Running npm install...`);
@@ -109,31 +111,20 @@ export default nextConfig;
 // Build and run project
 async function buildAndRunProject(projectName, projectPath, port, onStdout, onStderr, onExit) {
   try {
-    console.log(`Starting ${projectName} in development mode on port ${port}`);
+    console.log(`Starting ${projectName} in development mode on port ${port} via PM2`);
     const projectEnv = { ...process.env, NODE_ENV: 'development' };
     
-    const child = spawn('npm', ['run', 'dev', '--', '-p', port], {
-      cwd: projectPath,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      detached: true,
-      env: projectEnv
-    });
+    // Using PM2 to start the project
+    const pm2Command = `pm2 start "npm run dev -- -p ${port}" --name "proj-${projectName}" --cwd "${projectPath}"`;
     
-    if (onStdout) child.stdout.on('data', onStdout);
-    if (onStderr) child.stderr.on('data', onStderr);
-    
-    child.on('error', (error) => {
-      console.error(`Error starting ${projectName}:`, error);
-      if (onExit) onExit();
-    });
-    
-    child.on('close', (code) => {
-      console.log(`${projectName} stopped with code ${code}`);
-      if (onExit) onExit();
-    });
-    
-    child.unref();
-    return child.pid;
+    try {
+      execSync(pm2Command, { stdio: 'inherit', env: projectEnv });
+      console.log(`[${projectName}] Started successfully via PM2`);
+      return `proj-${projectName}`; // Return PM2 name to be stored as PID/Identifier
+    } catch (pm2Error) {
+      console.error(`PM2 start failed for ${projectName}:`, pm2Error.message);
+      throw pm2Error;
+    }
   } catch (error) {
     console.error(`Error building/running ${projectName}:`, error);
     throw error;

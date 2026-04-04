@@ -3,7 +3,7 @@ const path = require('path');
 const config = require('../config');
 const { createProject, buildAndRunProject, buildProject } = require('./project');
 const { createGitHubRepo } = require('./git');
-const { WebsiteDesign } = require('./db');
+const { WebsiteDesign, Project } = require('./db');
 const scaffolder = require('./scaffolder');
 
 class ProjectManager {
@@ -15,6 +15,24 @@ class ProjectManager {
     if (!fs.existsSync(config.PROJECTS_DIR)) {
       fs.mkdirSync(config.PROJECTS_DIR, { recursive: true });
     }
+  }
+
+  async init() {
+    console.log('Initializing Project Manager from database...');
+    const projects = await Project.find({});
+    for (const project of projects) {
+      this.usedPorts.add(project.port);
+      this.runningProjects.set(project.name, {
+        port: project.port,
+        path: project.path,
+        createdAt: project.createdAt,
+        githubRepo: project.githubRepo,
+        pid: project.pid,
+        status: project.status
+      });
+      console.log(`- Loaded project: ${project.name} on port ${project.port} [${project.status}]`);
+    }
+    console.log(`Loaded ${projects.length} projects.`);
   }
 
   getAvailablePort() {
@@ -29,7 +47,7 @@ class ProjectManager {
     return Array.from(this.runningProjects.entries()).map(([name, info]) => ({
       name,
       port: info.port,
-      url: `http://localhost:${info.port}`,
+      url: `http://202.179.6.77:${info.port}`,
       createdAt: info.createdAt,
       githubRepo: info.githubRepo
     }));
@@ -57,8 +75,23 @@ class ProjectManager {
       port,
       path: projectPath,
       createdAt: new Date(),
-      githubRepo
+      githubRepo,
+      status: 'STOPPED',
+      url: `http://202.179.6.77:${port}`
     };
+
+    // Save to Database
+    await Project.findOneAndUpdate(
+      { name: projectName },
+      { 
+        name: projectName,
+        port,
+        path: projectPath,
+        githubRepo,
+        status: 'STOPPED'
+      },
+      { upsert: true, new: true }
+    );
 
     this.runningProjects.set(projectName, projectInfo);
     return projectInfo;
@@ -82,11 +115,24 @@ class ProjectManager {
     return this.runningProjects.get(projectName);
   }
 
-  stopProject(name) {
+  async stopProject(name) {
     const project = this.runningProjects.get(name);
     if (!project) throw new Error('Project not found');
 
-    process.kill(project.pid, 'SIGTERM');
+    // Use PM2 to stop/delete the process
+    const pm2Identifier = `proj-${name}`;
+    try {
+      const { execSync } = require('child_process');
+      execSync(`pm2 delete ${pm2Identifier}`, { stdio: 'inherit' });
+    } catch (err) {
+      console.warn(`Could not delete PM2 process ${pm2Identifier}: ${err.message}`);
+    }
+
+    project.pid = null;
+    project.status = 'STOPPED';
+    
+    await Project.updateOne({ name }, { status: 'STOPPED', pid: null });
+    
     this.usedPorts.delete(project.port);
     this.runningProjects.delete(name);
     return true;
@@ -96,17 +142,30 @@ class ProjectManager {
     const projectPath = path.join(config.PROJECTS_DIR, name);
     if (!fs.existsSync(projectPath)) throw new Error('Project directory not found');
 
-    const buildOutput = await buildProject(name, projectPath);
-    console.log(`[${name}] Starting GitHub synchronization...`);
-    
-    let githubRepo = null;
-    try {
-      githubRepo = await createGitHubRepo(name, projectPath);
-    } catch (repoError) {
-      console.warn(`[${name}] GitHub sync failed:`, repoError.message);
-    }
+    await Project.updateOne({ name }, { status: 'BUILDING' });
 
-    return { buildOutput, githubRepo };
+    try {
+      const buildOutput = await buildProject(name, projectPath);
+      console.log(`[${name}] Starting GitHub synchronization...`);
+      
+      let githubRepo = null;
+      try {
+        githubRepo = await createGitHubRepo(name, projectPath);
+      } catch (repoError) {
+        console.warn(`[${name}] GitHub sync failed:`, repoError.message);
+      }
+
+      await Project.updateOne({ name }, { status: 'STOPPED', githubRepo });
+      if (this.runningProjects.has(name)) {
+        this.runningProjects.get(name).status = 'STOPPED';
+        if (githubRepo) this.runningProjects.get(name).githubRepo = githubRepo;
+      }
+
+      return { buildOutput, githubRepo };
+    } catch (error) {
+      await Project.updateOne({ name }, { status: 'ERROR' });
+      throw error;
+    }
   }
 }
 

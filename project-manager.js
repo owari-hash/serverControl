@@ -10,8 +10,10 @@ app.use(cors());
 // --- API Routes ---
 
 // List all projects
-app.get('/api/projects', (req, res) => {
-  res.json(projectManager.listProjects());
+app.get('/api/projects', async (req, res) => {
+  const { Project } = require('./utils/db');
+  const projects = await Project.find({});
+  res.json(projects);
 });
 
 // Create new project
@@ -26,7 +28,7 @@ app.post('/api/create-project', async (req, res) => {
       success: true,
       ...projectInfo,
       projectName,
-      url: `http://localhost:${projectInfo.port}`,
+      url: `http://202.179.6.77:${projectInfo.port}`,
       message: `Project ${projectName} created and running on port ${projectInfo.port}`
     });
   } catch (error) {
@@ -35,10 +37,10 @@ app.post('/api/create-project', async (req, res) => {
 });
 
 // Stop a project
-app.delete('/api/projects/:name', (req, res) => {
+app.delete('/api/projects/:name', async (req, res) => {
   const { name } = req.params;
   try {
-    projectManager.stopProject(name);
+    await projectManager.stopProject(name);
     res.json({ success: true, message: `Project ${name} stopped` });
   } catch (error) {
     res.status(error.message === 'Project not found' ? 404 : 500).json({ error: error.message });
@@ -89,7 +91,7 @@ app.post('/api/sites/generate', async (req, res) => {
       success: true,
       message: `Site ${projectName} generated and started`,
       ...projectInfo,
-      url: `http://localhost:${projectInfo.port}`
+      url: `http://202.179.6.77:${projectInfo.port}`
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate site', details: error.message });
@@ -178,16 +180,75 @@ app.get('/api/components', async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(config.PM_PORT, '0.0.0.0', () => {
-  console.log(`Project Manager API running on port ${config.PM_PORT}`);
-  console.log(`- POST   /api/designs              : Create/Update a site design`);
-  console.log(`- GET    /api/designs              : List designs in database`);
-  console.log(`- POST   /api/components           : Add/Update a component template`);
-  console.log(`- GET    /api/components           : List all component templates`);
-  console.log(`- POST   /api/create-project       : Create new Next.js project`);
-  console.log(`- GET    /api/projects             : List all projects`);
-  console.log(`- DELETE /api/projects/:name       : Stop a project`);
-  console.log(`- POST   /api/projects/:name/build : Build and sync project`);
-  console.log(`- POST   /api/sites/generate       : Generate site from DB design`);
+// --- Project Data API (Arbitrary Storage) ---
+
+// Get all data for a project
+app.get('/api/projects/:name/data', async (req, res) => {
+  const { name } = req.params;
+  try {
+    const { ProjectData } = require('./utils/db');
+    const data = await ProjectData.find({ projectName: name });
+    const dataObj = {};
+    data.forEach(item => dataObj[item.key] = item.value);
+    res.json(dataObj);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch project data' });
+  }
 });
+
+// Set data for a project
+app.post('/api/projects/:name/data', async (req, res) => {
+  const { name } = req.params;
+  const { key, value } = req.body;
+  if (!key) return res.status(400).json({ error: 'Key is required' });
+
+  try {
+    const { ProjectData } = require('./utils/db');
+    const data = await ProjectData.findOneAndUpdate(
+      { projectName: name, key },
+      { projectName: name, key, value, updatedAt: Date.now() },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save project data' });
+  }
+});
+
+// Delete specific data key
+app.delete('/api/projects/:name/data/:key', async (req, res) => {
+  const { name, key } = req.params;
+  try {
+    const { ProjectData } = require('./utils/db');
+    await ProjectData.deleteOne({ projectName: name, key });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete project data' });
+  }
+});
+
+// Start Server
+const startServer = async () => {
+  try {
+    await projectManager.init();
+    app.listen(config.PM_PORT, '0.0.0.0', () => {
+      console.log(`Project Manager API running on port ${config.PM_PORT}`);
+      console.log(`- POST   /api/designs              : Create/Update a site design`);
+      console.log(`- GET    /api/designs              : List designs in database`);
+      console.log(`- POST   /api/components           : Add/Update a component template`);
+      console.log(`- GET    /api/components           : List all component templates`);
+      console.log(`- POST   /api/create-project       : Create new Next.js project`);
+      console.log(`- GET    /api/projects             : List all projects`);
+      console.log(`- DELETE /api/projects/:name       : Stop a project`);
+      console.log(`- POST   /api/projects/:name/build : Build and sync project`);
+      console.log(`- POST   /api/sites/generate       : Generate site from DB design`);
+      console.log(`- GET    /api/projects/:name/data  : Get project-specific data`);
+      console.log(`- POST   /api/projects/:name/data  : Set project-specific data`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
