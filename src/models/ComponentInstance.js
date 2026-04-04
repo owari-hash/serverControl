@@ -67,7 +67,7 @@ ComponentInstanceSchema.index({ projectName: 1, parentId: 1, slot: 1, order: 1 }
 ComponentInstanceSchema.index({ projectName: 1, instanceId: 1 }, { unique: true });
 
 // Pre-save hook to ensure instanceId uniqueness per project
-ComponentInstanceSchema.pre('save', async function(next) {
+ComponentInstanceSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
