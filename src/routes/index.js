@@ -11,4 +11,8 @@ router.use('/designs', designRoutes);
 router.use('/components', componentRoutes);
 router.use('/data', dataRoutes);
 
+// Legacy endpoint mapped for dynamic headless CMS sites
+const designController = require('../controllers/designController');
+router.get('/sites/:name/content', designController.getDesign);
+
 module.exports = router;
