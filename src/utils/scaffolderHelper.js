@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { ComponentLibrary } = require('./db');
+const ComponentLibrary = require('../models/ComponentLibrary');
 const { PROJECTS_DIR } = require('../../config');
 const { createGitHubRepo } = require('./gitHelper');
 const { WebsiteDesign } = require('../models/WebsiteDesign');
