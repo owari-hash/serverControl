@@ -66,8 +66,8 @@ const ProjectSchema = new mongoose.Schema({
   port: { type: Number, required: true },
   path: { type: String, required: true },
   status: { type: String, enum: ['RUNNING', 'STOPPED', 'BUILDING', 'ERROR'], default: 'STOPPED' },
-  githubRepo: String,
-  pid: Number, // Current process ID (null if not running)
+  githubRepo: mongoose.Schema.Types.Mixed,
+  pid: String, // PM2 identifier (string or number)
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
