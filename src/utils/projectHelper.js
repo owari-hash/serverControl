@@ -58,10 +58,10 @@ async function createProject(projectName) {
     
     console.log(`Installing dependencies for ${projectName}`);
     
-    // 1. Add @cms-builder/core as local relative dependency
+    // 1. Add @cms-builder/core from registry (latest)
     const pkgPath = path.join(projectPath, 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    pkg.dependencies['@cms-builder/core'] = 'file:../../../cmsBuilder';
+    pkg.dependencies['@cms-builder/core'] = 'latest';
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
     // 2. Setup .npmrc for the private registry
