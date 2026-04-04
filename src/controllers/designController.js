@@ -39,26 +39,6 @@ class DesignController {
       res.status(error.message === 'Design not found' ? 404 : 500).json({ error: error.message });
     }
   }
-
-  async updatePage(req, res) {
-    try {
-      const { name, route } = req.params;
-      const design = await designService.updatePage(name, route, req.body);
-      res.json({ success: true, design });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  async deletePage(req, res) {
-    try {
-      const { name, route } = req.params;
-      const design = await designService.deletePage(name, route);
-      res.json({ success: true, design });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
 }
 
 module.exports = new DesignController();

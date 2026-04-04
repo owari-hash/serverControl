@@ -1,21 +1,11 @@
 const mongoose = require('mongoose');
 
-// Component Instance (the bridge between library and site structure)
-const ComponentInstanceSchema = new mongoose.Schema({
-  type: { type: String, required: true }, // must exist in ComponentLibrary
-  props: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
-  order: { type: Number, default: 0 }
-});
+/**
+ * WebsiteDesign Model - Hybrid Architecture
+ * Stores project-level settings only (theme, domain, metadata)
+ * Component structure stored separately in ComponentInstance collection
+ */
 
-// Page Schema
-const PageSchema = new mongoose.Schema({
-  route: { type: String, required: true }, // e.g., '/', '/about', '/pricing'
-  title: { type: String, required: true },
-  description: String,
-  components: [ComponentInstanceSchema]
-});
-
-// Website Design Schema (The root document)
 const WebsiteDesignSchema = new mongoose.Schema({
   projectName: { type: String, required: true, unique: true },
   domain: String,
@@ -23,9 +13,11 @@ const WebsiteDesignSchema = new mongoose.Schema({
     primaryColor: { type: String, default: '#3b82f6' },
     secondaryColor: { type: String, default: '#1f2937' },
     fontFamily: { type: String, default: 'Inter' },
-    darkMode: { type: Boolean, default: false }
+    darkMode: { type: Boolean, default: false },
+    customTokens: { type: Map, of: String, default: {} }
   },
-  pages: [PageSchema],
+  // NOTE: Page component structure now stored in ComponentInstance collection
+  // pages: [] - Removed in hybrid architecture v2
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

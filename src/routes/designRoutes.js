@@ -2,15 +2,13 @@ const express = require('express');
 const router = express.Router();
 const designController = require('../controllers/designController');
 
-// Design CRUD
+// Project Design CRUD (theme, settings - NOT component structure)
 router.get('/', designController.getAllDesigns);
 router.get('/:name', designController.getDesign);
 router.post('/', designController.saveDesign);
 router.patch('/:name', designController.saveDesign);
 router.delete('/:name', designController.deleteDesign);
 
-// Page CRUD (nested under design/project)
-router.post('/:name/pages/:route', designController.updatePage);
-router.delete('/:name/pages/:route', designController.deletePage);
+// NOTE: Page component structure now managed via /api/components/instances/* routes
 
 module.exports = router;
