@@ -66,12 +66,6 @@ ComponentInstanceSchema.index({ projectName: 1, pageRoute: 1, order: 1 });
 ComponentInstanceSchema.index({ projectName: 1, parentId: 1, slot: 1, order: 1 });
 ComponentInstanceSchema.index({ projectName: 1, instanceId: 1 }, { unique: true });
 
-// Pre-save hook to ensure instanceId uniqueness per project
-ComponentInstanceSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
-
 // Static method to get page tree
 ComponentInstanceSchema.statics.getPageTree = async function(projectName, pageRoute) {
   const instances = await this.find({
