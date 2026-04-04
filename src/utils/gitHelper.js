@@ -1,6 +1,6 @@
 const { execSync } = require('child_process');
 const axios = require('axios');
-const { GITHUB_TOKEN, GITHUB_USERNAME } = require('../config');
+const { GITHUB_TOKEN, GITHUB_USERNAME } = require('../../config');
 
 async function createGitHubRepo(projectName, projectPath) {
   if (!GITHUB_TOKEN || !GITHUB_USERNAME) {

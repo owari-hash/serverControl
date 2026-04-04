@@ -1,7 +1,7 @@
 const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { PROJECTS_DIR } = require('../config');
+const { PROJECTS_DIR } = require('../../config');
 
 // Create Next.js project
 async function createProject(projectName) {

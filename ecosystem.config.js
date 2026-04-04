@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'nextjs-project-manager',
-      script: 'project-manager.js',
+      script: 'src/server.js',
       instances: 1,
       autorestart: true,
       watch: false,
