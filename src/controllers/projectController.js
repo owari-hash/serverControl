@@ -21,10 +21,10 @@ class ProjectController {
 
   async createProject(req, res) {
     try {
-      const { projectName } = req.body;
-      if (!projectName) return res.status(400).json({ error: 'Project name is required' });
+      const { name } = req.body;
+      if (!name) return res.status(400).json({ error: 'Project name is required' });
 
-      const project = await projectService.createNewProject(projectName);
+      const project = await projectService.createNewProject(name);
       res.status(201).json({
         success: true,
         project,
