@@ -7,11 +7,14 @@ const ComponentInstance = require('../models/ComponentInstance');
 // Structure stored in MongoDB, code in TypeScript files
 // ==========================================
 
-// Get all component instances for a project page
-router.get('/instances/:projectName/:pageRoute', async (req, res) => {
+// Get all component instances for a project page - supports both path and query params
+router.get('/instances/:projectName/:pageRoute?', async (req, res) => {
   try {
-    const { projectName, pageRoute } = req.params;
-    const decodedRoute = decodeURIComponent(pageRoute);
+    const { projectName, pageRoute: pathRoute } = req.params;
+    const queryRoute = req.query.pageRoute;
+    const decodedRoute = pathRoute 
+      ? decodeURIComponent(pathRoute)
+      : (queryRoute ? decodeURIComponent(queryRoute) : '/');
     
     const instances = await ComponentInstance.find({
       projectName,
@@ -25,11 +28,14 @@ router.get('/instances/:projectName/:pageRoute', async (req, res) => {
   }
 });
 
-// Get component tree (nested structure)
-router.get('/tree/:projectName/:pageRoute', async (req, res) => {
+// Get component tree (nested structure) - supports both path and query params
+router.get('/tree/:projectName/:pageRoute?', async (req, res) => {
   try {
-    const { projectName, pageRoute } = req.params;
-    const decodedRoute = decodeURIComponent(pageRoute);
+    const { projectName, pageRoute: pathRoute } = req.params;
+    const queryRoute = req.query.pageRoute;
+    const decodedRoute = pathRoute 
+      ? decodeURIComponent(pathRoute)
+      : (queryRoute ? decodeURIComponent(queryRoute) : '/');
     
     const tree = await ComponentInstance.getPageTree(projectName, decodedRoute);
     res.json(tree);
