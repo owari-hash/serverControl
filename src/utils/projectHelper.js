@@ -93,7 +93,8 @@ export default nextConfig;
     try {
       execSync('npm install --legacy-peer-deps', {
         stdio: 'inherit',
-        cwd: projectPath
+        cwd: projectPath,
+        env: { ...process.env, NODE_ENV: 'development' }
       });
     } catch (installError) {
       if (installError.stdout) console.error('NPM STDOUT:', installError.stdout.toString());

@@ -84,9 +84,6 @@ class ProjectService {
       createdAt: project.createdAt
     });
 
-    // Auto-start via PM2
-    await this.startProject(sanitizedName);
-
     return project;
   }
 
@@ -174,8 +171,14 @@ class ProjectService {
     if (!design) throw new Error(`Design for ${projectName} not found`);
 
     const project = await this.createNewProject(projectName);
+    
+    // Scaffolding components MUST happen before PM2 boots up Next.js
+    // Otherwise Tailwind compilation and Turbopack caching will break.
     await scaffolder.generateSiteCode(design, project.path);
     await createGitHubRepo(projectName, project.path);
+    
+    // Now start the project safely
+    await this.startProject(project.name);
 
     return project;
   }

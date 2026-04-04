@@ -1,22 +1,34 @@
 const fs = require('fs');
 const path = require('path');
 const ComponentLibrary = require('../models/ComponentLibrary');
-const { PROJECTS_DIR } = require('../../config');
-const { createGitHubRepo } = require('./gitHelper');
-const { WebsiteDesign } = require('../models/WebsiteDesign');
 
 class ScaffolderEngine {
   constructor() {}
 
+  // Helper to sanitize component types (e.g. Contact-form -> Contactform)
+  _sanitizeType(type) {
+    return type.replace(/-/g, '');
+  }
+
   async generateSiteCode(design, projectPath) {
     console.log(`[Scaffolder] Generating dynamic code for ${design.projectName}...`);
     
+    // Clean out any old [[...slug]] dynamic routing from baseline template
+    const slugDir = path.join(projectPath, 'src', 'app', '[[...slug]]');
+    if (fs.existsSync(slugDir)) fs.rmSync(slugDir, { recursive: true, force: true });
+
     this._ensureDirectories(projectPath);
 
     // 1. Fetch all required components from DB
-    const componentTypes = new Set(['Navbar']); // Always include Navbar
+    const componentTypes = new Set(['Navbar']); // Always include Navbar just in case
+    if (design.pages.length > 1) {
+      componentTypes.add('Pagination'); // Add Pagination if needed
+    }
+    
     design.pages.forEach(page => {
-      page.components.forEach(comp => componentTypes.add(comp.type));
+      page.components.forEach(comp => {
+        componentTypes.add(comp.type);
+      });
     });
 
     const components = await ComponentLibrary.find({ 
@@ -30,22 +42,19 @@ class ScaffolderEngine {
     // Strategy: Project components override global ones if types match
     const componentMap = new Map();
     components.forEach(c => {
-      // If project component exists, it will overwrite the global one in the Map
-      if (!componentMap.has(c.type) || c.scope === 'PROJECT') {
-        componentMap.set(c.type, c.code);
+      const sType = this._sanitizeType(c.type);
+      if (!componentMap.has(sType) || c.scope === 'PROJECT') {
+        componentMap.set(sType, c.code);
       }
     });
 
     // 2. Generate Components from DB templates
     this._generateGlobalComponents(componentMap, projectPath);
 
-    // 3. Generate Data Fetching Library (The Dynamic Link)
-    this._generateDataLib(design, projectPath);
+    // 3. Generate Static Pages
+    await this._generatePages(design, projectPath);
 
-    // 4. Generate Master Catch-all Page
-    this._generateMasterPage(design, projectPath);
-
-    // 5. Generate Layout & Styles
+    // 4. Generate Layout & Styles
     this._generateLayout(design, projectPath);
     this._generateGlobalsCss(design, projectPath);
 
@@ -56,7 +65,6 @@ class ScaffolderEngine {
     const dirs = [
       path.join(projectPath, 'src', 'components'),
       path.join(projectPath, 'src', 'app'),
-      path.join(projectPath, 'src', 'app', '[[...slug]]'),
       path.join(projectPath, 'src', 'lib')
     ];
     dirs.forEach((dir) => {
@@ -81,42 +89,105 @@ class ScaffolderEngine {
       content += `export { default as ${type} } from './${type}';\n`;
     });
     
-    // Safety: Ensure file is a module even if empty
     content += 'export {};';
-    
     fs.writeFileSync(indexPath, content);
   }
 
-  _generateDataLib(design, projectPath) {
-    const libDir = path.join(projectPath, 'src', 'lib');
-    // Content fetching is now handled by the framework service
-    // but we can generate a simple re-export or config file if needed.
-    // For now, we'll rely on NEXT_PUBLIC_PROJECT_NAME env variable.
-  }
-
-  _generateMasterPage(design, projectPath) {
-    const pageDir = path.join(projectPath, 'src', 'app', '[[...slug]]');
+  async _generatePages(design, projectPath) {
+    const { pages } = design;
     
-    const pageContent = `
-import { CMSPage, cms } from '@cms-builder/core';
+    for (const page of pages) {
+      // Create directory for the route (e.g. '/' -> '', '/about' -> 'about')
+      let routeDir = path.join(projectPath, 'src', 'app');
+      if (page.route && page.route !== '/') {
+        // Remove leading slash
+        const subRoute = page.route.startsWith('/') ? page.route.slice(1) : page.route;
+        routeDir = path.join(routeDir, subRoute);
+      }
+      if (!fs.existsSync(routeDir)) fs.mkdirSync(routeDir, { recursive: true });
+
+      // 1. Sort components by order
+      const sortedComponents = [...page.components].sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      // 2. Enrich component props
+      const enrichedComponents = sortedComponents.map(comp => {
+        // Deep copy props to avoid mutating original, or fallback if absent
+        const props = comp.props ? JSON.parse(JSON.stringify(comp.props)) : {};
+        const safeType = this._sanitizeType(comp.type);
+        
+        // Add page navigation to header
+        if (safeType === 'Header') {
+          props.pages = pages.map(p => ({ route: p.route, title: p.title }));
+          props.currentRoute = page.route;
+        }
+        
+        // Add background video to home
+        if (safeType === 'Home' && page.backgroundVideo) {
+          props.backgroundVideo = page.backgroundVideo;
+        }
+        
+        return { type: safeType, props };
+      });
+      
+      // 3. Auto-add pagination if multiple pages
+      if (pages.length > 1) {
+        enrichedComponents.push({
+          type: 'Pagination',
+          props: {
+            pages: pages.map(p => ({ route: p.route, title: p.title })),
+            currentRoute: page.route
+          },
+          order: enrichedComponents.length
+        });
+      }
+      
+      // 4. Generate page file
+      let componentsBlock = enrichedComponents.map(comp => {
+        return `<Components.${comp.type} {...${JSON.stringify(comp.props)}} />`;
+      }).join('\n              ');
+
+      let bgVideoBlock = '';
+      if (page.backgroundVideo) {
+         bgVideoBlock = `
+            <div className="absolute inset-0 z-0">
+              <div className="absolute inset-0 bg-black/40 z-10" />
+              {${JSON.stringify(page.backgroundVideo)}.includes('youtube') || ${JSON.stringify(page.backgroundVideo)}.includes('youtu.be') ? (
+                <iframe
+                  src={\`https://www.youtube.com/embed/\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}?autoplay=1&mute=1&loop=1&controls=0&playlist=\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}&start=0&enablejsapi=0&rel=0&modestbranding=1&playsinline=1\`}
+                  className="absolute top-1/2 left-1/2 w-[100vw] h-[100vh] -translate-x-1/2 -translate-y-1/2 scale-125"
+                  style={{ pointerEvents: 'none', minWidth: '100%', minHeight: '100%' }}
+                  allow="autoplay; encrypted-media"
+                  frameBorder="0"
+                />
+              ) : (
+                <video src={${JSON.stringify(page.backgroundVideo)}} autoPlay muted loop playsInline className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 object-cover" style={{ minWidth: '100%', minHeight: '100%' }} />
+              )}
+            </div>
+         `.trim();
+      }
+
+      const styleBlock = page.backgroundImage 
+        ? `{ backgroundImage: \`url(${page.backgroundImage})\` }`
+        : `{}`;
+
+      const pageContent = `
 import * as Components from '@/components';
 
-export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
-  const { slug } = await params;
-  const route = slug ? '/' + slug.join('/') : '/';
-  const design = await cms.getDesign();
-
+export default function Page() {
   return (
-    <CMSPage 
-      design={design} 
-      componentMap={Components} 
-      route={route} 
-    />
-  );
+    <div className="relative min-h-screen" style={${styleBlock}}>
+      ${bgVideoBlock}
+      <div className="relative z-10 w-full h-full">
+        ${componentsBlock}
+      </div>
+    </div>
+  )
 }
 `.trim();
-
-    fs.writeFileSync(path.join(pageDir, 'page.tsx'), pageContent);
+      
+      // 5. Write page file
+      fs.writeFileSync(path.join(routeDir, 'page.tsx'), pageContent);
+    }
   }
 
   _generateLayout(design, projectPath) {
