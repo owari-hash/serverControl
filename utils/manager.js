@@ -94,6 +94,18 @@ class ProjectManager {
     );
 
     this.runningProjects.set(projectName, projectInfo);
+    
+    // Auto-start the project via PM2
+    try {
+      const pm2Id = await buildAndRunProject(projectName, projectPath, port);
+      projectInfo.status = 'RUNNING';
+      projectInfo.pid = pm2Id;
+      await Project.updateOne({ name: projectName }, { status: 'RUNNING', pid: pm2Id });
+    } catch (startError) {
+      console.error(`Failed to auto-start project ${projectName}:`, startError.message);
+      await Project.updateOne({ name: projectName }, { status: 'ERROR' });
+    }
+
     return projectInfo;
   }
 
@@ -112,6 +124,8 @@ class ProjectManager {
     // 4. Sync the generated code to GitHub
     await createGitHubRepo(projectName, projectPath);
 
+    // The project is already started by createNewProject, 
+    // but we return the latest state
     return this.runningProjects.get(projectName);
   }
 
