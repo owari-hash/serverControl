@@ -48,6 +48,13 @@ async function createProject(projectName) {
     };
 
     copyRecursiveSync(templatePath, projectPath);
+
+    // 2.1. CRITICAL: Delete optional catch-all route to avoid conflict with generated pages
+    const catchAllRoutePath = path.join(projectPath, 'src', 'app', '[[...slug]]');
+    if (fs.existsSync(catchAllRoutePath)) {
+      console.log(`[${projectName}] Deleting conflicting catch-all route: ${catchAllRoutePath}`);
+      fs.rmSync(catchAllRoutePath, { recursive: true, force: true });
+    }
     
     console.log(`Installing dependencies for ${projectName}`);
     
@@ -68,15 +75,10 @@ async function createProject(projectName) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@cms-builder/core"],
-  experimental: {
-    allowedDevOrigins: ["202.179.6.77"],
-  },
+  allowedDevOrigins: ["202.179.6.77"], // Moved to top-level for Next.js 15
   devIndicators: false,
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 
