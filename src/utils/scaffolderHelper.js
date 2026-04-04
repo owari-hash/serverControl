@@ -27,8 +27,10 @@ class ScaffolderEngine {
       });
     });
 
+    const lowercaseComponentTypes = Array.from(componentTypes).map(t => t.toLowerCase());
+
     const components = await ComponentLibrary.find({ 
-      type: { $in: Array.from(componentTypes) },
+      type: { $in: lowercaseComponentTypes },
       $or: [
         { scope: 'GLOBAL' },
         { scope: 'PROJECT', projectName: design.projectName }
@@ -38,7 +40,8 @@ class ScaffolderEngine {
     // Strategy: Project components override global ones if types match
     const componentMap = new Map();
     components.forEach(c => {
-      const sType = this._sanitizeType(c.type);
+      const originalType = Array.from(componentTypes).find(t => t.toLowerCase() === c.type.toLowerCase()) || c.type;
+      const sType = this._sanitizeType(originalType);
       if (!componentMap.has(sType) || c.scope === 'PROJECT') {
         componentMap.set(sType, c.code);
       }
