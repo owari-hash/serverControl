@@ -31,9 +31,8 @@ const WebsiteDesignSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt timestamp on save
-WebsiteDesignSchema.pre('save', function(next) {
+WebsiteDesignSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('WebsiteDesign', WebsiteDesignSchema);
