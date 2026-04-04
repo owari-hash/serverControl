@@ -1,299 +1,514 @@
-# Next.js Project Manager
+# Backend Component Storage & Generation Guide
 
-Automated Next.js project deployment system for Ubuntu servers with PM2 process management.
+## Problem Summary
+The generated site is showing different content than the website builder, with issues like:
+- Background video not displaying
+- Components out of order
+- Missing content
+- Different styling
 
-## Features
+## Root Causes
 
-- **POST API** to create new Next.js projects automatically
-- **Auto-dependency installation** and project building
-- **Port management** - assigns available ports automatically
-- **Process management** with PM2 - auto-restart, monitoring
-- **REST API** for project management
-- **Production-ready** with logging and persistence
+### 1. Component Order Not Preserved
+When saving page components, the `order` field must be respected during site generation.
 
-## Quick Deployment
+### 2. Props Not Passed Correctly
+Background video and other page-level properties must be passed to child components.
 
-### 1. Clone and Deploy
-```bash
-git clone https://github.com/owari-hash/serverControl.git
-cd serverControl
-chmod +x deploy.sh
-./deploy.sh
-```
+### 3. Missing Component Templates
+Each component type needs a working React component template on the backend.
 
-### 2. Manual Setup
-```bash
-# Install PM2 globally
-npm install -g pm2
+---
 
-# Create directories
-mkdir -p /home/projects logs
+## Data Structure Specification
 
-# Install dependencies
-npm install
+### Design Object Structure
 
-# Start with PM2
-pm2 start ecosystem.config.js
-
-# Save PM2 configuration
-pm2 save
-
-# Setup PM2 to start on boot
-pm2 startup
-pm2 save
-```
-
-## API Endpoints
-
-### Create New Project
-```bash
-POST /api/create-project
-Content-Type: application/json
-
+```json
 {
-  "projectName": "my-app"
+  "projectName": "my-project",
+  "theme": {
+    "primaryColor": "#3b82f6",
+    "secondaryColor": "#1f2937",
+    "fontFamily": "Inter",
+    "darkMode": false
+  },
+  "pages": [
+    {
+      "route": "/",
+      "title": "Home",
+      "description": "Home page",
+      "backgroundVideo": "https://youtube.com/watch?v=...",
+      "backgroundImage": "https://example.com/bg.jpg",
+      "components": [
+        {
+          "type": "Header",
+          "props": {
+            "title": "My Company",
+            "pages": [
+              { "route": "/", "title": "Home" },
+              { "route": "/about", "title": "About" }
+            ],
+            "currentRoute": "/"
+          },
+          "order": 0
+        },
+        {
+          "type": "Home",
+          "props": {
+            "title": "Welcome",
+            "subtitle": "Hello",
+            "backgroundVideo": "https://youtube.com/watch?v=..."
+          },
+          "order": 1
+        },
+        {
+          "type": "Pagination",
+          "props": {
+            "pages": [
+              { "route": "/", "title": "Home" },
+              { "route": "/about", "title": "About" }
+            ],
+            "currentRoute": "/"
+          },
+          "order": 2
+        }
+      ]
+    }
+  ]
 }
 ```
 
-**Response:**
+---
+
+## Component Storage Requirements
+
+### Component Templates Storage
+
+Each component type must be stored with:
+
 ```json
 {
-  "success": true,
-  "projectName": "my-app",
-  "port": 3000,
-  "url": "http://localhost:3000",
-  "message": "Project my-app created and running on port 3000"
+  "type": "Home",
+  "category": "Hero",
+  "code": "export default function Home({ title, subtitle, backgroundVideo }) { ... }",
+  "description": "Hero component for projects",
+  "defaultProps": {},
+  "projectName": "my-project"
 }
 ```
 
-### List All Projects
-```bash
-GET /api/projects
-```
+### Component Categories
 
-**Response:**
-```json
-[
-  {
-    "name": "my-app",
-    "port": 3000,
-    "url": "http://localhost:3000",
-    "createdAt": "2024-01-01T12:00:00.000Z"
-  }
-]
-```
+| Type | Category | File Name |
+|------|----------|-----------|
+| Header | Navbar | `Header.tsx` |
+| Home | Hero | `Home.tsx` |
+| About | Content | `About.tsx` |
+| Service | Services | `Service.tsx` |
+| Contact | Contact | `Contact.tsx` |
+| Footer | Footer | `Footer.tsx` |
+| Card | Cards | `Card.tsx` |
+| Text | Content | `Text.tsx` |
+| Grid | Layout | `Grid.tsx` |
+| Contactform | Forms | `Contactform.tsx` |
+| Pagination | Navigation | `Pagination.tsx` |
+| Jobs | Jobs | `Jobs.tsx` |
+| News | News | `News.tsx` |
+| Rental | Rental | `Rental.tsx` |
+| Chatbot | Chatbot | `Chatbot.tsx` |
 
-### Stop a Project
-```bash
-DELETE /api/projects/my-app
-```
+---
 
-## PM2 Management
+## Critical Rules for Site Generation
 
-### Basic Commands
-```bash
-pm2 status              # Check status
-pm2 logs                # View logs
-pm2 logs nextjs-project-manager  # View specific app logs
-pm2 restart all         # Restart all apps
-pm2 stop all            # Stop all apps
-pm2 monit               # Open monitoring dashboard
-pm2 delete all          # Remove all apps
-```
+### 1. Sort Components by Order
 
-### Log Management
-```bash
-# View real-time logs
-pm2 logs
-
-# View error logs
-pm2 logs --err
-
-# View logs for last 100 lines
-pm2 logs --lines 100
-
-# Clear logs
-pm2 flush
-```
-
-### Process Management
-```bash
-# Restart the manager
-pm2 restart nextjs-project-manager
-
-# Reload without downtime
-pm2 reload nextjs-project-manager
-
-# Get detailed info
-pm2 show nextjs-project-manager
-```
-
-## Usage Examples
-
-### Using curl
-```bash
-# Create a new project
-curl -X POST http://your-server-ip:3001/api/create-project \
-  -H "Content-Type: application/json" \
-  -d '{"projectName": "dashboard"}'
-
-# List projects
-curl http://your-server-ip:3001/api/projects
-
-# Stop a project
-curl -X DELETE http://your-server-ip:3001/api/projects/dashboard
-```
-
-### Using JavaScript
+**WRONG:**
 ```javascript
-// Create project
-const response = await fetch('http://your-server-ip:3001/api/create-project', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ projectName: 'my-new-app' })
-});
-const result = await response.json();
-console.log(result.url); // http://your-server-ip:3000
+page.components.forEach(comp => render(comp))
 ```
 
-## Port Assignment
-
-- Projects are automatically assigned ports starting from 3000
-- Each project gets a unique port
-- When a project stops, its port becomes available again
-
-## Project Structure
-
-Each created project follows the standard Next.js structure:
-```
-/home/projects/my-app/
-├── src/
-├── public/
-├── package.json
-├── next.config.js
-└── ... (standard Next.js files)
+**RIGHT:**
+```javascript
+page.components
+  .sort((a, b) => a.order - b.order)
+  .forEach(comp => render(comp))
 ```
 
-## Monitoring and Logs
+### 2. Pass Page-Level Props to Components
 
-### PM2 Monitoring
-```bash
-# Open monitoring dashboard
-pm2 monit
+Background video MUST be passed from page to Home component:
 
-# Check CPU/Memory usage
-pm2 status
+```javascript
+// Page has backgroundVideo
+const page = {
+  backgroundVideo: "https://...",
+  components: [...]
+}
 
-# View process details
-pm2 show nextjs-project-manager
+// When rendering Home component
+if (comp.type === 'Home' && page.backgroundVideo) {
+  comp.props.backgroundVideo = page.backgroundVideo
+}
 ```
 
-### Log Files
-- **Error logs:** `./logs/err.log`
-- **Output logs:** `./logs/out.log`
-- **Combined logs:** `./logs/combined.log`
+### 3. Generate Navigation Links in Header
 
-### Web Monitoring (Optional)
-```bash
-# Install PM2 Plus monitoring
-pm2 install pm2-server-monit
+Header must receive all pages for navigation:
 
-# Access web dashboard at
-# http://your-server-ip:9615
+```javascript
+if (comp.type === 'Header') {
+  comp.props.pages = design.pages.map(p => ({
+    route: p.route,
+    title: p.title
+  }))
+  comp.props.currentRoute = page.route
+}
 ```
 
-## Production Considerations
+### 4. Auto-Generate Pagination for Multi-Page Sites
 
-### Security
-- Configure firewall rules for ports 3001 and project ports
-- Consider adding API authentication
-- Use HTTPS in production
+If more than 1 page exists, add Pagination component at the end:
 
-### Performance
-- Monitor memory usage with `pm2 monit`
-- Adjust `max_memory_restart` in ecosystem.config.js
-- Consider using clustering for high load
-
-### Backup
-```bash
-# Backup PM2 configuration
-pm2 save
-
-# Export configuration
-pm2 ecosystem > ecosystem.backup.js
-
-# Backup projects directory
-tar -czf projects-backup.tar.gz /home/projects
+```javascript
+if (design.pages.length > 1) {
+  page.components.push({
+    type: 'Pagination',
+    props: {
+      pages: design.pages.map(p => ({ route: p.route, title: p.title })),
+      currentRoute: page.route
+    },
+    order: page.components.length
+  })
+}
 ```
 
-## Troubleshooting
+### 5. Preserve Component Content Props
 
-### Common Issues
+Don't drop any props - pass ALL content to component:
 
-**Manager not starting:**
-```bash
-# Check PM2 status
-pm2 status
+```javascript
+// WRONG - dropping unknown props
+const props = {
+  title: comp.content.title,
+  description: comp.content.description
+}
 
-# View logs
-pm2 logs nextjs-project-manager
-
-# Check Node.js version
-node --version  # Should be 16+
+// RIGHT - preserve all props
+const props = { ...comp.content }
 ```
 
-**Port conflicts:**
-```bash
-# Check what's using ports
-sudo netstat -tlnp | grep :3001
+---
 
-# Kill conflicting processes
-sudo kill -9 <PID>
+## Background Video Implementation
+
+### YouTube Videos
+
+```javascript
+// Extract video ID
+const getYouTubeId = (url) => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2].length === 11) ? match[2] : null
+}
+
+// Embed URL
+const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&controls=0&playlist=${videoId}&start=0&enablejsapi=0&rel=0&modestbranding=1&playsinline=1`
 ```
 
-**Build failures:**
-```bash
-# Check disk space
-df -h
+### Direct Video Files
 
-# Check memory
-free -h
-
-# View detailed logs
-pm2 logs --lines 50
+```javascript
+<video 
+  src={backgroundVideo}
+  autoPlay 
+  muted 
+  loop 
+  playsInline 
+  className="absolute inset-0 w-full h-full object-cover"
+/>
 ```
 
-### Recovery
-```bash
-# Complete restart
-pm2 delete all
-pm2 start ecosystem.config.js
-pm2 save
+### Page Background Rendering
 
-# Reset PM2
-pm2 kill
-pm2 start ecosystem.config.js
-pm2 save
+Page-level background video should be rendered BEFORE components:
+
+```jsx
+<div className="relative min-h-screen">
+  {/* Background layer */}
+  {page.backgroundVideo && (
+    <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 bg-black/40 z-10" />
+      <VideoComponent url={page.backgroundVideo} />
+    </div>
+  )}
+  
+  {/* Components layer */}
+  <div className="relative z-20">
+    {sortedComponents.map(comp => <Component {...comp.props} />)}
+  </div>
+</div>
 ```
 
-## Environment Variables
+---
 
-Create `.env` file for configuration:
-```env
-NODE_ENV=production
-PORT=3001
-PROJECTS_DIR=/home/projects
-BASE_PORT=3000
-MAX_PROJECTS=50
+## Component Code Templates
+
+### Header Component
+
+```jsx
+export default function Header({ title, logoUrl, pages, currentRoute }) {
+  return (
+    <header className="flex justify-between items-center p-4 bg-white shadow-sm">
+      {logoUrl && <img src={logoUrl} alt="Logo" className="h-10" />}
+      <h1 className="text-xl font-bold">{title}</h1>
+      <nav className="space-x-4">
+        {pages?.map((page) => (
+          <a 
+            key={page.route} 
+            href={page.route}
+            className={currentRoute === page.route 
+              ? 'font-bold text-blue-600' 
+              : 'text-gray-600 hover:text-blue-600'
+            }
+          >
+            {page.title}
+          </a>
+        ))}
+      </nav>
+    </header>
+  )
+}
 ```
 
-## Postman Collection
+### Home Component
 
-Import `Postman_Collection.json` for ready-to-use API testing.
+```jsx
+export default function Home({ title, subtitle, buttonText, backgroundVideo }) {
+  return (
+    <div className="relative min-h-[500px] p-8">
+      {backgroundVideo && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-black/40 z-10" />
+          <VideoPlayer url={backgroundVideo} />
+        </div>
+      )}
+      <div className="relative z-10">
+        <h1 className="text-4xl font-bold mb-4">{title}</h1>
+        <p className="text-xl mb-6">{subtitle}</p>
+        {buttonText && (
+          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg">
+            {buttonText}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+```
 
-## Support
+### Pagination Component
 
-- Check PM2 logs for errors
-- Monitor system resources
-- Ensure sufficient disk space for projects
-- Verify network connectivity for API access
+```jsx
+export default function Pagination({ pages, currentRoute }) {
+  if (!pages || pages.length <= 1) return null
+  
+  return (
+    <div className="flex justify-center items-center gap-2 p-4 bg-gray-100">
+      {pages.map((page) => (
+        <a
+          key={page.route}
+          href={page.route}
+          className={`px-4 py-2 rounded-lg ${
+            currentRoute === page.route 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-white text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {page.title}
+        </a>
+      ))}
+    </div>
+  )
+}
+```
+
+---
+
+## Site Generation Algorithm
+
+```javascript
+async function generateSite(design) {
+  const { projectName, pages, theme } = design
+  
+  for (const page of pages) {
+    // 1. Sort components by order
+    const sortedComponents = [...page.components]
+      .sort((a, b) => a.order - b.order)
+    
+    // 2. Enrich component props
+    const enrichedComponents = sortedComponents.map(comp => {
+      const props = { ...comp.props }
+      
+      // Add page navigation to header
+      if (comp.type === 'Header') {
+        props.pages = pages.map(p => ({ route: p.route, title: p.title }))
+        props.currentRoute = page.route
+      }
+      
+      // Add background video to home
+      if (comp.type === 'Home' && page.backgroundVideo) {
+        props.backgroundVideo = page.backgroundVideo
+      }
+      
+      return { ...comp, props }
+    })
+    
+    // 3. Auto-add pagination if multiple pages
+    if (pages.length > 1) {
+      enrichedComponents.push({
+        type: 'Pagination',
+        props: {
+          pages: pages.map(p => ({ route: p.route, title: p.title })),
+          currentRoute: page.route
+        },
+        order: enrichedComponents.length
+      })
+    }
+    
+    // 4. Generate page file
+    const pageContent = `
+      export default function Page() {
+        return (
+          <div className="relative min-h-screen" style={page.backgroundImage ? { backgroundImage: \`url(\${page.backgroundImage})\` } : {}}>
+            ${page.backgroundVideo ? '<PageBackgroundVideo url={page.backgroundVideo} />' : ''}
+            <div className="relative z-10">
+              ${enrichedComponents.map(comp => `<${comp.type} {...${JSON.stringify(comp.props)}} />`).join('\\n')}
+            </div>
+          </div>
+        )
+      }
+    `
+    
+    // 5. Write page file
+    await writeFile(`src/app${page.route}/page.tsx`, pageContent)
+  }
+}
+```
+
+---
+
+## Validation Checklist
+
+Before considering site generation complete, verify:
+
+- [ ] All components sorted by `order` field
+- [ ] Header has `pages` and `currentRoute` props
+- [ ] Home has `backgroundVideo` if page has one
+- [ ] Pagination added if multiple pages
+- [ ] Page background video rendered at page level
+- [ ] Page background image applied
+- [ ] All component props preserved (no data loss)
+- [ ] Component templates exist for all used types
+- [ ] Generated file names are valid (no hyphens)
+
+---
+
+## Common Issues & Fixes
+
+### Issue: Background video not showing
+**Fix:** Pass `backgroundVideo` from page props to Home component props
+
+### Issue: Components in wrong order
+**Fix:** Sort by `order` field before rendering
+
+### Issue: Navigation not working
+**Fix:** Pass `pages` array to Header component
+
+### Issue: Missing content
+**Fix:** Use spread operator: `{ ...comp.content }` not individual fields
+
+### Issue: Export name error with hyphens
+**Fix:** Rename component types: `contact-form` → `contactform`
+
+### Issue: Component code leaking into other components
+**Fix:** Store each component template separately, don't concatenate code strings. Each component must have its own clean file.
+
+---
+
+## Component Code Isolation (CRITICAL)
+
+Each component MUST be stored in a separate file. Never concatenate component codes together.
+
+**WRONG - Code leaking:**
+```javascript
+// NEVER do this
+const allCode = headerCode + footerCode + paginationCode
+// This creates: export function Header()...export function Footer()...{!pages.length > 1
+```
+
+**RIGHT - Separate files:**
+```javascript
+// src/components/Header.tsx
+export default function Header({...}) { ... }
+
+// src/components/Footer.tsx  
+export default function Footer({...}) { ... }
+
+// src/components/Pagination.tsx
+export default function Pagination({ pages }) {
+  if (!pages || pages.length <= 1) return null
+  ...
+}
+```
+
+### Database Storage
+
+Store each component as a separate document:
+
+```javascript
+// Component 1
+{
+  type: "Header",
+  code: "export default function Header(...)"
+}
+
+// Component 2  
+{
+  type: "Footer",
+  code: "export default function Footer(...)"
+}
+
+// Component 3
+{
+  type: "Pagination", 
+  code: "export default function Pagination(...)"
+}
+```
+
+**NOT as a single concatenated string!**
+
+---
+
+## File: src/components/index.ts
+
+Must export ALL components with valid JavaScript identifiers:
+
+```typescript
+export { default as Header } from './Header'
+export { default as Home } from './Home'
+export { default as About } from './About'
+export { default as Service } from './Service'
+export { default as Contact } from './Contact'
+export { default as Footer } from './Footer'
+export { default as Card } from './Card'
+export { default as Text } from './Text'
+export { default as Grid } from './Grid'
+export { default as Contactform } from './Contactform'  // NOT Contact-form
+export { default as Pagination } from './Pagination'
+export { default as Jobs } from './Jobs'
+export { default as News } from './News'
+export { default as Rental } from './Rental'
+export { default as Chatbot } from './Chatbot'
+```

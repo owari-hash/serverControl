@@ -1,110 +1,183 @@
 {
-	"info": {
-		"_postman_id": "nextjs-project-manager",
-		"name": "Next.js Project Manager API",
-		"description": "Collection for automated Next.js project deployment system",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Create New Project",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"projectName\": \"my-new-app\"\n}"
-				},
-				"url": {
-					"raw": "{{baseUrl}}/api/create-project",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"api",
-						"create-project"
-					]
-				},
-				"description": "Creates a new Next.js project automatically with dependencies, build, and run"
-			},
-			"response": []
-		},
-		{
-			"name": "List All Projects",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{baseUrl}}/api/projects",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"api",
-						"projects"
-					]
-				},
-				"description": "Returns a list of all running projects with their details"
-			},
-			"response": []
-		},
-		{
-			"name": "Stop Project",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-					"raw": "{{baseUrl}}/api/projects/{{projectName}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"api",
-						"projects",
-						"{{projectName}}"
-					]
-				},
-				"description": "Stops and removes a running project"
-			},
-			"response": []
-		},
-		{
-			"name": "Test Project Access",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{projectUrl}}",
-					"host": [
-						"{{projectUrl}}"
-					]
-				},
-				"description": "Test access to a created Next.js project"
-			},
-			"response": []
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:3001",
-			"description": "Your server IP and manager port"
-		},
-		{
-			"key": "projectName",
-			"value": "my-new-app",
-			"description": "Name of the project to stop"
-		},
-		{
-			"key": "projectUrl",
-			"value": "http://localhost:3000",
-			"description": "URL of the created project"
-		}
-	]
+  "info": {
+    "name": "CMS Backend MVC API",
+    "description": "Comprehensive endpoints for the refactored MVC CMS API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://202.179.6.77:4000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Projects",
+      "description": "Lifecycle management of Next.js projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          }
+        },
+        {
+          "name": "Get Specific Project",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/projects/my-website", "host": ["{{baseUrl}}"], "path": ["projects", "my-website"] }
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectName\": \"my-website\"\n}" },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          }
+        },
+        {
+          "name": "Stop Project",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/projects/my-website/stop", "host": ["{{baseUrl}}"], "path": ["projects", "my-website", "stop"] }
+          }
+        },
+        {
+          "name": "Build Project",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/projects/my-website/build", "host": ["{{baseUrl}}"], "path": ["projects", "my-website", "build"] }
+          }
+        },
+        {
+          "name": "Generate Site",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectName\": \"my-website\"\n}" },
+            "url": { "raw": "{{baseUrl}}/projects/generate", "host": ["{{baseUrl}}"], "path": ["projects", "generate"] }
+          }
+        },
+        {
+          "name": "Live PM2 Logs (SSE)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/projects/my-website/logs/live", "host": ["{{baseUrl}}"], "path": ["projects", "my-website", "logs", "live"] }
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/projects/my-website", "host": ["{{baseUrl}}"], "path": ["projects", "my-website"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Designs",
+      "description": "Manage website designs and logical architecture",
+      "item": [
+        {
+          "name": "Get All Designs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/designs", "host": ["{{baseUrl}}"], "path": ["designs"] }
+          }
+        },
+        {
+          "name": "Get Specific Design",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/designs/my-website", "host": ["{{baseUrl}}"], "path": ["designs", "my-website"] }
+          }
+        },
+        {
+          "name": "Create / Update Design",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectName\": \"my-website\",\n  \"domain\": \"example.com\",\n  \"theme\": {\n    \"primaryColor\": \"#ff0000\",\n    \"darkMode\": false\n  },\n  \"pages\": [\n    {\n      \"route\": \"/\",\n      \"title\": \"Home\",\n      \"description\": \"Main page\",\n      \"components\": [\n        { \"type\": \"Header\", \"order\": 0 },\n        { \"type\": \"Hero\", \"order\": 1 }\n      ]\n    }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/designs", "host": ["{{baseUrl}}"], "path": ["designs"] }
+          }
+        },
+        {
+          "name": "Update Specific Page within Design",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"About Us\",\n  \"description\": \"Company info\",\n  \"components\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/designs/my-website/pages/about", "host": ["{{baseUrl}}"], "path": ["designs", "my-website", "pages", "about"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Components",
+      "description": "Manage reusable React Component Templates",
+      "item": [
+        {
+          "name": "Get Component Libary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/components?category=Headers&projectName=my-website", "host": ["{{baseUrl}}"], "path": ["components"], "query": [
+              { "key": "category", "value": "Headers", "disabled": true },
+              { "key": "projectName", "value": "my-website", "disabled": true }
+            ] }
+          }
+        },
+        {
+          "name": "Create Component",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"Hero\",\n  \"category\": \"Headers\",\n  \"description\": \"A responsive main hero section\",\n  \"code\": \"export default function Hero({ title }) { return <div className='p-8 font-bold text-4xl'>{title}</div>; }\",\n  \"defaultProps\": {\n    \"title\": \"Welcome to my Site!\"\n  },\n  \"projectName\": \"my-website\"\n}" },
+            "url": { "raw": "{{baseUrl}}/components", "host": ["{{baseUrl}}"], "path": ["components"] }
+          }
+        },
+        {
+          "name": "Delete Component",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectName\": \"my-website\"\n}" },
+            "url": { "raw": "{{baseUrl}}/components/Hero", "host": ["{{baseUrl}}"], "path": ["components", "Hero"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Project Data",
+      "description": "Arbitrary key/value JSON objects isolated by Project.",
+      "item": [
+        {
+          "name": "Get All Project Data",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/data/my-website", "host": ["{{baseUrl}}"], "path": ["data", "my-website"] }
+          }
+        },
+        {
+          "name": "Set Data Key",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"key\": \"settings\",\n  \"value\": { \"analytics\": true, \"maintenanceMode\": false }\n}" },
+            "url": { "raw": "{{baseUrl}}/data/my-website", "host": ["{{baseUrl}}"], "path": ["data", "my-website"] }
+          }
+        },
+        {
+          "name": "Delete Data Key",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/data/my-website/settings", "host": ["{{baseUrl}}"], "path": ["data", "my-website", "settings"] }
+          }
+        }
+      ]
+    }
+  ]
 }

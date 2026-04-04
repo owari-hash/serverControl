@@ -21,10 +21,23 @@ class ComponentService {
   }
 
   async createOrUpdateComponent(type, componentData) {
+    // README Rule: No hyphens in types (contact-form -> contactform)
+    const sanitizedType = type.toLowerCase().replace(/-/g, '');
+    
+    // README Recommendation: Validate Category
+    const validCategories = [
+      'Navbar', 'Hero', 'Content', 'Services', 'Contact', 'Footer', 
+      'Cards', 'Layout', 'Forms', 'Navigation', 'Jobs', 'News', 'Rental', 'Chatbot'
+    ];
+    
+    if (componentData.category && !validCategories.includes(componentData.category)) {
+      console.warn(`[ComponentService] Category "${componentData.category}" is non-standard. Recommended: ${validCategories.join(', ')}`);
+    }
+
     const scope = componentData.projectName ? 'PROJECT' : 'GLOBAL';
     const component = await ComponentLibrary.findOneAndUpdate(
-      { type, projectName: componentData.projectName || null },
-      { ...componentData, type, scope },
+      { type: sanitizedType, projectName: componentData.projectName || null },
+      { ...componentData, type: sanitizedType, scope },
       { upsert: true, new: true }
     );
     return component;

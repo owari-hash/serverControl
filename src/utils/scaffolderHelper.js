@@ -12,10 +12,6 @@ class ScaffolderEngine {
 
   async generateSiteCode(design, projectPath) {
     console.log(`[Scaffolder] Generating dynamic code for ${design.projectName}...`);
-    
-    // Clean out any old [[...slug]] dynamic routing from baseline template
-    const slugDir = path.join(projectPath, 'src', 'app', '[[...slug]]');
-    if (fs.existsSync(slugDir)) fs.rmSync(slugDir, { recursive: true, force: true });
 
     this._ensureDirectories(projectPath);
 
@@ -97,31 +93,29 @@ class ScaffolderEngine {
     const { pages } = design;
     
     for (const page of pages) {
-      // Create directory for the route (e.g. '/' -> '', '/about' -> 'about')
       let routeDir = path.join(projectPath, 'src', 'app');
       if (page.route && page.route !== '/') {
-        // Remove leading slash
         const subRoute = page.route.startsWith('/') ? page.route.slice(1) : page.route;
         routeDir = path.join(routeDir, subRoute);
       }
       if (!fs.existsSync(routeDir)) fs.mkdirSync(routeDir, { recursive: true });
 
-      // 1. Sort components by order
+      // 1. Sort components by order (CRITICAL: README Rule 1)
       const sortedComponents = [...page.components].sort((a, b) => (a.order || 0) - (b.order || 0));
       
-      // 2. Enrich component props
+      // 2. Enrich component props (CRITICAL: README Rules 2, 3, 5)
       const enrichedComponents = sortedComponents.map(comp => {
-        // Deep copy props to avoid mutating original, or fallback if absent
+        // Rule 5: Preserve ALL props (no data loss)
         const props = comp.props ? JSON.parse(JSON.stringify(comp.props)) : {};
         const safeType = this._sanitizeType(comp.type);
         
-        // Add page navigation to header
+        // Rule 3: Add page navigation to header
         if (safeType === 'Header') {
           props.pages = pages.map(p => ({ route: p.route, title: p.title }));
           props.currentRoute = page.route;
         }
         
-        // Add background video to home
+        // Rule 2 & Background Video Implementation Section: Pass background video to Home
         if (safeType === 'Home' && page.backgroundVideo) {
           props.backgroundVideo = page.backgroundVideo;
         }
@@ -129,45 +123,51 @@ class ScaffolderEngine {
         return { type: safeType, props };
       });
       
-      // 3. Auto-add pagination if multiple pages
+      // 3. Auto-add pagination if multiple pages (CRITICAL: README Rule 4)
       if (pages.length > 1) {
         enrichedComponents.push({
           type: 'Pagination',
           props: {
             pages: pages.map(p => ({ route: p.route, title: p.title })),
             currentRoute: page.route
-          },
-          order: enrichedComponents.length
+          }
         });
       }
       
-      // 4. Generate page file
+      // 4. Generate page file with background layer logic
       let componentsBlock = enrichedComponents.map(comp => {
         return `<Components.${comp.type} {...${JSON.stringify(comp.props)}} />`;
       }).join('\n              ');
 
       let bgVideoBlock = '';
       if (page.backgroundVideo) {
-         bgVideoBlock = `
+         // README: YouTube vs Direct files handling
+         const isYouTube = page.backgroundVideo.includes('youtube') || page.backgroundVideo.includes('youtu.be');
+         if (isYouTube) {
+           bgVideoBlock = `
             <div className="absolute inset-0 z-0">
               <div className="absolute inset-0 bg-black/40 z-10" />
-              {${JSON.stringify(page.backgroundVideo)}.includes('youtube') || ${JSON.stringify(page.backgroundVideo)}.includes('youtu.be') ? (
-                <iframe
-                  src={\`https://www.youtube.com/embed/\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}?autoplay=1&mute=1&loop=1&controls=0&playlist=\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}&start=0&enablejsapi=0&rel=0&modestbranding=1&playsinline=1\`}
-                  className="absolute top-1/2 left-1/2 w-[100vw] h-[100vh] -translate-x-1/2 -translate-y-1/2 scale-125"
-                  style={{ pointerEvents: 'none', minWidth: '100%', minHeight: '100%' }}
-                  allow="autoplay; encrypted-media"
-                  frameBorder="0"
-                />
-              ) : (
-                <video src={${JSON.stringify(page.backgroundVideo)}} autoPlay muted loop playsInline className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 object-cover" style={{ minWidth: '100%', minHeight: '100%' }} />
-              )}
+              <iframe
+                src={\`https://www.youtube.com/embed/\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}?autoplay=1&mute=1&loop=1&controls=0&playlist=\${${JSON.stringify(page.backgroundVideo)}.match(/(?:youtu\\\\.be\\\\/|v\\\\/|u\\\\/\\\\w\\\\/|embed\\\\/|watch\\\\?v=|\\\\&v=)([^#\\\\&\\\\?]*)/)?.[1]}&start=0&enablejsapi=0&rel=0&modestbranding=1&playsinline=1\`}
+                className="absolute top-1/2 left-1/2 w-[100vw] h-[100vh] -translate-x-1/2 -translate-y-1/2 scale-125"
+                style={{ pointerEvents: 'none', minWidth: '100%', minHeight: '100%' }}
+                allow="autoplay; encrypted-media"
+                frameBorder="0"
+              />
             </div>
-         `.trim();
+           `.trim();
+         } else {
+           bgVideoBlock = `
+            <div className="absolute inset-0 z-0">
+              <div className="absolute inset-0 bg-black/40 z-10" />
+              <video src={${JSON.stringify(page.backgroundVideo)}} autoPlay muted loop playsInline className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 object-cover" style={{ minWidth: '100%', minHeight: '100%' }} />
+            </div>
+           `.trim();
+         }
       }
 
       const styleBlock = page.backgroundImage 
-        ? `{ backgroundImage: \`url(${page.backgroundImage})\` }`
+        ? `{ backgroundImage: \`url(${page.backgroundImage})\`, backgroundSize: 'cover' }`
         : `{}`;
 
       const pageContent = `
@@ -185,7 +185,6 @@ export default function Page() {
 }
 `.trim();
       
-      // 5. Write page file
       fs.writeFileSync(path.join(routeDir, 'page.tsx'), pageContent);
     }
   }
