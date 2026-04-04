@@ -44,8 +44,8 @@ class ScaffolderEngine {
       }
     });
 
-    // 2. Generate Components from DB templates
-    this._generateGlobalComponents(componentMap, projectPath);
+    // 2. Generate Components from DB templates (with placeholders for missing ones)
+    this._generateGlobalComponents(componentMap, projectPath, componentTypes);
 
     // 3. Generate Static Pages
     await this._generatePages(design, projectPath);
@@ -68,14 +68,54 @@ class ScaffolderEngine {
     });
   }
 
-  _generateGlobalComponents(componentMap, projectPath) {
+  _generateGlobalComponents(componentMap, projectPath, componentTypes) {
     const componentsDir = path.join(projectPath, 'src', 'components');
     
+    // Track what we actually created files for
+    const finalComponentMap = new Map();
+
+    // 1. Generate files for components found in DB
     for (const [type, code] of componentMap.entries()) {
       fs.writeFileSync(path.join(componentsDir, type + '.tsx'), code);
+      finalComponentMap.set(type, true);
     }
 
-    this._generateComponentsIndex(componentMap, projectPath);
+    // 2. Generate placeholders for missing types (CRITICAL: Prevents Build Failures)
+    componentTypes.forEach(type => {
+      const sType = this._sanitizeType(type);
+      if (!finalComponentMap.has(sType)) {
+        console.warn(`[Scaffolder] Component "${type}" not found in DB. Creating placeholder...`);
+        const placeholderCode = `
+import React from 'react';
+
+const ${sType}: React.FC<any> = (props) => (
+  <div style={{ 
+    padding: '40px', 
+    border: '2px dashed #f87171', 
+    backgroundColor: '#fee2e2', 
+    color: '#991b1b',
+    textAlign: 'center',
+    borderRadius: '8px',
+    margin: '10px'
+  }}>
+    <h3 style={{ margin: '0' }}>Missing Component: <strong>${type}</strong></h3>
+    <p style={{ margin: '8px 0 0', opacity: 0.7, fontSize: '14px' }}>
+      Please add this component template in the SuperAdmin.
+    </p>
+    <pre style={{ fontSize: '10px', marginTop: '10px', opacity: 0.5 }}>
+      {JSON.stringify(props, null, 2)}
+    </pre>
+  </div>
+);
+
+export default ${sType};
+`.trim();
+        fs.writeFileSync(path.join(componentsDir, sType + '.tsx'), placeholderCode);
+        finalComponentMap.set(sType, true);
+      }
+    });
+
+    this._generateComponentsIndex(finalComponentMap, projectPath);
   }
 
   _generateComponentsIndex(componentMap, projectPath) {
