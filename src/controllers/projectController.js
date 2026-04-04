@@ -104,7 +104,7 @@ class ProjectController {
     const { spawn } = require('child_process');
 
     // 2. Spawn PM2 logs process (-f means follow, --lines 50 gives previous contexts)
-    const logProcess = spawn('pm2', ['logs', pm2AppName, '--raw', '--nostream=false', '--lines', '50']);
+    const logProcess = spawn('pm2', ['logs', pm2AppName, '--raw', '--lines', '50']);
 
     // Helper to send data over the open SSE connection
     const sendEvent = (data) => {
