@@ -86,6 +86,54 @@ class ProjectController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  async streamLogs(req, res) {
+    const { name } = req.params;
+    
+    // 1. Setup SSE Headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    // Ensure proxies don't buffer
+    res.setHeader('X-Accel-Buffering', 'no'); 
+
+    // Send an initial handshake to establish connection
+    res.write(`data: connected to log stream for project ${name}\\n\\n`);
+
+    const pm2AppName = `proj-${name}`;
+    const { spawn } = require('child_process');
+
+    // 2. Spawn PM2 logs process (-f means follow, --lines 50 gives previous contexts)
+    const logProcess = spawn('pm2', ['logs', pm2AppName, '--raw', '--nostream=false', '--lines', '50']);
+
+    // Helper to send data over the open SSE connection
+    const sendEvent = (data) => {
+      // Chunk string by lines so SSE clients parse perfectly
+      const lines = data.toString().split('\\n');
+      lines.forEach(line => {
+        if (line.trim().length > 0) {
+          res.write(`data: ${line}\\n\\n`);
+        }
+      });
+    };
+
+    // 3. Listen to streams
+    logProcess.stdout.on('data', sendEvent);
+    logProcess.stderr.on('data', sendEvent);
+
+    // If PM2 logs stops abruptly
+    logProcess.on('close', (code) => {
+      res.write(`data: [SYSTEM] log process closed with code ${code}\\n\\n`);
+      res.end();
+    });
+
+    // 4. Client disconnect cleanup
+    req.on('close', () => {
+      console.log(`Client disconnected from logs of ${name}, killing log tailer`);
+      logProcess.kill();
+      res.end();
+    });
+  }
 }
 
 module.exports = new ProjectController();

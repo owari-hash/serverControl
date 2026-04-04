@@ -14,4 +14,7 @@ router.post('/:name/stop', projectController.stopProject);
 router.post('/:name/build', projectController.buildProject);
 router.post('/generate', projectController.generateSite);
 
+// Logs
+router.get('/:name/logs/live', projectController.streamLogs);
+
 module.exports = router;
