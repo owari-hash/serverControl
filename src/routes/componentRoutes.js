@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ComponentInstance = require('../models/ComponentInstance');
+const { envelope, validateComponentPayload } = require('../utils/apiContract');
 
 // ==========================================
 // Hybrid Architecture - Component Instance Management
@@ -21,7 +22,7 @@ router.get('/instances/:projectName/:pageRoute?', async (req, res) => {
       pageRoute: decodedRoute
     }).sort({ parentId: 1, slot: 1, order: 1 }).lean();
     
-    res.json(instances);
+    res.json(envelope(instances));
   } catch (error) {
     console.error('Error fetching component instances:', error);
     res.status(500).json({ error: error.message });
@@ -38,7 +39,7 @@ router.get('/tree/:projectName/:pageRoute?', async (req, res) => {
       : (queryRoute ? decodeURIComponent(queryRoute) : '/');
     
     const tree = await ComponentInstance.getPageTree(projectName, decodedRoute);
-    res.json(tree);
+    res.json(envelope(tree));
   } catch (error) {
     console.error('Error building component tree:', error);
     res.status(500).json({ error: error.message });
@@ -51,9 +52,11 @@ router.post('/instances/:projectName', async (req, res) => {
     const { projectName } = req.params;
     const data = req.body;
     
-    if (!data.componentType || !data.pageRoute) {
+    const validation = validateComponentPayload(data);
+    if (!validation.valid) {
       return res.status(400).json({
-        error: 'Missing required fields: componentType, pageRoute'
+        error: 'Validation failed',
+        details: validation.errors
       });
     }
     
@@ -83,7 +86,7 @@ router.post('/instances/:projectName', async (req, res) => {
     });
 
     await instance.save();
-    res.status(201).json(instance);
+    res.status(201).json(envelope(instance));
   } catch (error) {
     console.error('Error creating component instance:', error);
     res.status(500).json({ error: error.message });
@@ -95,6 +98,9 @@ router.patch('/instances/:projectName/:instanceId', async (req, res) => {
   try {
     const { projectName, instanceId } = req.params;
     const updates = req.body;
+    if (updates.order !== undefined && (!Number.isInteger(updates.order) || updates.order < 0)) {
+      return res.status(400).json({ error: 'Validation failed', details: ['order must be a non-negative integer'] });
+    }
     
     delete updates._id;
     delete updates.instanceId;
@@ -110,7 +116,7 @@ router.patch('/instances/:projectName/:instanceId', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    res.json(instance);
+    res.json(envelope(instance));
   } catch (error) {
     console.error('Error updating component instance:', error);
     res.status(500).json({ error: error.message });
@@ -147,7 +153,7 @@ router.post('/reorder/:projectName', async (req, res) => {
     }));
     
     await ComponentInstance.bulkWrite(bulkOps);
-    res.json({ success: true, updated: componentOrders.length });
+    res.json(envelope({ success: true, updated: componentOrders.length }));
   } catch (error) {
     console.error('Error reordering components:', error);
     res.status(500).json({ error: error.message });
@@ -157,19 +163,19 @@ router.post('/reorder/:projectName', async (req, res) => {
 // Get available component types
 router.get('/types/registry', (req, res) => {
   const types = [
-    { type: 'header', category: 'section', description: 'Navigation header' },
-    { type: 'hero', category: 'section', description: 'Hero section' },
-    { type: 'about', category: 'section', description: 'About section' },
-    { type: 'footer', category: 'section', description: 'Footer' },
-    { type: 'twocolumn', category: 'layout', slots: ['left', 'right'], description: 'Two column layout' },
-    { type: 'grid', category: 'layout', slots: ['items'], description: 'CSS Grid' },
-    { type: 'card', category: 'layout', slots: ['header', 'content', 'footer'], description: 'Card container' },
-    { type: 'container', category: 'layout', slots: ['default'], description: 'Max-width container' },
-    { type: 'pagination', category: 'primitive', description: 'Page navigation' },
-    { type: 'button', category: 'primitive', description: 'Clickable button' },
+    { type: 'header', category: 'section', description: 'Navigation header', version: '1.0.0', capabilities: ['navigation', 'branding'], requiredProps: ['title'], deprecations: [] },
+    { type: 'hero', category: 'section', description: 'Hero section', version: '1.0.0', capabilities: ['marketing', 'cta'], requiredProps: ['title'], deprecations: [] },
+    { type: 'about', category: 'section', description: 'About section', version: '1.0.0', capabilities: ['content'], requiredProps: [], deprecations: [] },
+    { type: 'footer', category: 'section', description: 'Footer', version: '1.0.0', capabilities: ['navigation', 'legal'], requiredProps: [], deprecations: [] },
+    { type: 'twocolumn', category: 'layout', slots: ['left', 'right'], description: 'Two column layout', version: '1.0.0', capabilities: ['layout'], requiredProps: [], deprecations: [] },
+    { type: 'grid', category: 'layout', slots: ['items'], description: 'CSS Grid', version: '1.0.0', capabilities: ['layout'], requiredProps: [], deprecations: [] },
+    { type: 'card', category: 'layout', slots: ['header', 'content', 'footer'], description: 'Card container', version: '1.0.0', capabilities: ['layout'], requiredProps: [], deprecations: [] },
+    { type: 'container', category: 'layout', slots: ['default'], description: 'Max-width container', version: '1.0.0', capabilities: ['layout'], requiredProps: [], deprecations: [] },
+    { type: 'pagination', category: 'primitive', description: 'Page navigation', version: '1.0.0', capabilities: ['navigation'], requiredProps: [], deprecations: [] },
+    { type: 'button', category: 'primitive', description: 'Clickable button', version: '1.0.0', capabilities: ['interaction'], requiredProps: [], deprecations: [] },
   ];
   
-  res.json(types);
+  res.json(envelope(types));
 });
 
 module.exports = router;
