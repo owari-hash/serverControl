@@ -1,0 +1,476 @@
+{
+  "info": {
+    "name": "CMS Generate + 5 Pages Seed (Ready)",
+    "description": "Generate project, seed 5-page design, seed component instances per page, and verify data/render endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://202.179.6.77:4000/api",
+      "type": "string"
+    },
+    {
+      "key": "projectName",
+      "value": "industry-demo-{{$timestamp}}",
+      "type": "string"
+    },
+    {
+      "key": "projectUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "route1",
+      "value": "/",
+      "type": "string"
+    },
+    {
+      "key": "route2",
+      "value": "/about",
+      "type": "string"
+    },
+    {
+      "key": "route3",
+      "value": "/services",
+      "type": "string"
+    },
+    {
+      "key": "route4",
+      "value": "/booking",
+      "type": "string"
+    },
+    {
+      "key": "route5",
+      "value": "/contact",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1) Generate Site (Create + Scaffold + Start)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is success', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Response success true', function () {",
+              "  pm.expect(json.success).to.eql(true);",
+              "});",
+              "if (json.url) { pm.collectionVariables.set('projectUrl', json.url); }",
+              "if (json.project && json.project.name) { pm.collectionVariables.set('projectName', json.project.name); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"projectName\": \"{{projectName}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/projects/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "generate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2) Upsert Design (5 pages)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"domain\": \"{{projectName}}.local\",\n  \"theme\": {\n    \"primaryColor\": \"#3b82f6\",\n    \"secondaryColor\": \"#1f2937\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false,\n    \"customTokens\": {\n      \"industry\": \"service\"\n    }\n  },\n  \"pages\": [\n    { \"route\": \"{{route1}}\", \"title\": \"Home\", \"description\": \"Landing page\" },\n    { \"route\": \"{{route2}}\", \"title\": \"About\", \"description\": \"About page\" },\n    { \"route\": \"{{route3}}\", \"title\": \"Services\", \"description\": \"Services page\" },\n    { \"route\": \"{{route4}}\", \"title\": \"Booking\", \"description\": \"Booking page\" },\n    { \"route\": \"{{route5}}\", \"title\": \"Contact\", \"description\": \"Contact page\" }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/designs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "designs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3) Get Project Record",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectName}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectName}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4) Seed Components - Home (/)",
+      "item": [
+        {
+          "name": "Create Header",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"links\": [\n      { \"href\": \"{{route1}}\", \"label\": \"Home\" },\n      { \"href\": \"{{route2}}\", \"label\": \"About\" },\n      { \"href\": \"{{route3}}\", \"label\": \"Services\" },\n      { \"href\": \"{{route4}}\", \"label\": \"Booking\" },\n      { \"href\": \"{{route5}}\", \"label\": \"Contact\" }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["components", "instances", "{{projectName}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Hero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"Scalable multi-industry CMS\",\n    \"align\": \"center\",\n    \"spacing\": \"lg\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["components", "instances", "{{projectName}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Footer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 2,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"copyright\": \"2026 {{projectName}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["components", "instances", "{{projectName}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5) Seed Components - About (/about)",
+      "item": [
+        {
+          "name": "Create Header",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"About {{projectName}}\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create About",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 1,\n  \"props\": { \"description\": \"We build robust digital platforms\", \"align\": \"left\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Footer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6) Seed Components - Services (/services)",
+      "item": [
+        {
+          "name": "Create Header",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Services\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Grid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"grid\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 1,\n  \"props\": { \"columns\": 3, \"gap\": \"md\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Footer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7) Seed Components - Booking (/booking)",
+      "item": [
+        {
+          "name": "Create Header",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Booking\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Container",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"container\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 1,\n  \"props\": { \"maxWidth\": \"xl\", \"padding\": \"lg\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Footer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8) Seed Components - Contact (/contact)",
+      "item": [
+        {
+          "name": "Create Header",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Contact\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create About",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 1,\n  \"props\": { \"description\": \"Contact us any time\", \"align\": \"center\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "Create Footer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9) Get Site Content (Envelope/Legacy Compatible)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/sites/{{projectName}}/content",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sites",
+            "{{projectName}}",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10) Verify Instances - /",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2F",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "components",
+            "instances",
+            "{{projectName}}"
+          ],
+          "query": [
+            {
+              "key": "pageRoute",
+              "value": "/"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "11) Verify Instances - /about",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fabout",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", "instances", "{{projectName}}"],
+          "query": [{ "key": "pageRoute", "value": "/about" }]
+        }
+      }
+    },
+    {
+      "name": "12) Verify Instances - /services",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fservices",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", "instances", "{{projectName}}"],
+          "query": [{ "key": "pageRoute", "value": "/services" }]
+        }
+      }
+    },
+    {
+      "name": "13) Verify Instances - /booking",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fbooking",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", "instances", "{{projectName}}"],
+          "query": [{ "key": "pageRoute", "value": "/booking" }]
+        }
+      }
+    },
+    {
+      "name": "14) Verify Instances - /contact",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fcontact",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", "instances", "{{projectName}}"],
+          "query": [{ "key": "pageRoute", "value": "/contact" }]
+        }
+      }
+    },
+    {
+      "name": "15) Get Component Type Registry (Versioned)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/types/registry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "components",
+            "types",
+            "registry"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16) Open Generated Root URL (Manual browser check)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{projectUrl}}",
+          "host": [
+            "{{projectUrl}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "17) Open /about (Manual browser check)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{projectUrl}}/about",
+          "host": [
+            "{{projectUrl}}"
+          ],
+          "path": [
+            "about"
+          ]
+        }
+      }
+    },
+    {
+      "name": "18) Open /services (Manual browser check)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{projectUrl}}/services",
+          "host": ["{{projectUrl}}"],
+          "path": ["services"]
+        }
+      }
+    }
+  ]
+}

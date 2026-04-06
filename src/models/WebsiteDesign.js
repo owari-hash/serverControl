@@ -16,8 +16,13 @@ const WebsiteDesignSchema = new mongoose.Schema({
     darkMode: { type: Boolean, default: false },
     customTokens: { type: Map, of: String, default: {} }
   },
-  // NOTE: Page component structure now stored in ComponentInstance collection
-  // pages: [] - Removed in hybrid architecture v2
+  // Keep lightweight page metadata for routing/title/description compatibility.
+  // Component tree/content remains in ComponentInstance collection.
+  pages: [{
+    route: { type: String, required: true },
+    title: { type: String, default: 'Untitled' },
+    description: { type: String, default: '' }
+  }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

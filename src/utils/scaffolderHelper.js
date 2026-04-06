@@ -8,25 +8,54 @@ class ScaffolderEngine {
     return type.replace(/-/g, '');
   }
 
+  _normalizeDesign(design) {
+    const projectName = design?.projectName || 'generated-project';
+    const theme = design?.theme || {
+      primaryColor: '#3b82f6',
+      secondaryColor: '#1f2937',
+      fontFamily: 'Inter',
+      darkMode: false
+    };
+
+    const pages = Array.isArray(design?.pages) && design.pages.length > 0
+      ? design.pages
+      : [
+          {
+            route: '/',
+            title: 'Home',
+            description: `${projectName} home page`,
+            components: []
+          }
+        ];
+
+    return {
+      ...design,
+      projectName,
+      theme,
+      pages
+    };
+  }
+
   async generateSiteCode(design, projectPath) {
-    console.log(`[Scaffolder] Generating schema-driven code for ${design.projectName}...`);
+    const normalizedDesign = this._normalizeDesign(design);
+    console.log(`[Scaffolder] Generating schema-driven code for ${normalizedDesign.projectName}...`);
 
     this._ensureDirectories(projectPath);
 
     // 1. Write the entire design payload into a local JSON file so the client can import it statically.
     const designPath = path.join(projectPath, 'src', 'lib', 'design.json');
-    fs.writeFileSync(designPath, JSON.stringify(design, null, 2));
+    fs.writeFileSync(designPath, JSON.stringify(normalizedDesign, null, 2));
 
     // 2. Always generate base route entrypoints
     this._generateRootPage(projectPath);
     this._generateCatchAllPage(projectPath);
 
     // 3. Generate static pages when explicit routes are present
-    await this._generatePages(design, projectPath);
+    await this._generatePages(normalizedDesign, projectPath);
 
     // 4. Generate Layout & Styles
-    this._generateLayout(design, projectPath);
-    this._generateGlobalsCss(design, projectPath);
+    this._generateLayout(normalizedDesign, projectPath);
+    this._generateGlobalsCss(normalizedDesign, projectPath);
 
     console.log(`[Scaffolder] Schema-driven generation complete.`);
   }
