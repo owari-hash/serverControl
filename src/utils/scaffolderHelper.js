@@ -47,8 +47,8 @@ class ScaffolderEngine {
     fs.writeFileSync(designPath, JSON.stringify(normalizedDesign, null, 2));
 
     // 2. Always generate base route entrypoints
-    this._generateRootPage(projectPath);
-    this._generateCatchAllPage(projectPath);
+    this._generateRootPage(projectPath, normalizedDesign.projectName);
+    this._generateCatchAllPage(projectPath, normalizedDesign.projectName);
 
     // 3. Generate static pages when explicit routes are present
     await this._generatePages(normalizedDesign, projectPath);
@@ -96,11 +96,31 @@ class ScaffolderEngine {
       // We no longer build deep nested React trees here in strings.
       
       const pageContent = `
-import { CMSPage } from '@cms-builder/core';
-import design from '@/lib/design.json';
+import { CMSPage, cmsApi } from '@cms-builder/core';
 
-export default function Page() {
-  return <CMSPage design={design as any} route="${page.route}" />
+const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${normalizedDesign.projectName}';
+
+export default async function Page() {
+  const route = "${page.route}";
+  const [design, instances] = await Promise.all([
+    cmsApi.getSiteContent(PROJECT).catch(() => null),
+    cmsApi.getPageComponents(PROJECT, route).catch(() => []),
+  ]);
+
+  if (!design) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-8">
+        <div className="max-w-xl text-center">
+          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
+          <p className="mt-3 text-gray-600">
+            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
 }
 `.trim();
       
@@ -108,32 +128,71 @@ export default function Page() {
     }
   }
 
-  _generateRootPage(projectPath) {
+  _generateRootPage(projectPath, projectName) {
     const rootPagePath = path.join(projectPath, 'src', 'app', 'page.tsx');
     const rootPageContent = `
-import { CMSPage } from '@cms-builder/core';
-import design from '@/lib/design.json';
+import { CMSPage, cmsApi } from '@cms-builder/core';
 
-export default function Page() {
-  return <CMSPage design={design as any} route="/" />
+const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${projectName}';
+
+export default async function Page() {
+  const route = '/';
+  const [design, instances] = await Promise.all([
+    cmsApi.getSiteContent(PROJECT).catch(() => null),
+    cmsApi.getPageComponents(PROJECT, route).catch(() => []),
+  ]);
+
+  if (!design) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-8">
+        <div className="max-w-xl text-center">
+          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
+          <p className="mt-3 text-gray-600">
+            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
 }
 `.trim();
     fs.writeFileSync(rootPagePath, rootPageContent);
   }
 
-  _generateCatchAllPage(projectPath) {
+  _generateCatchAllPage(projectPath, projectName) {
     const catchAllDir = path.join(projectPath, 'src', 'app', '[...slug]');
     if (!fs.existsSync(catchAllDir)) fs.mkdirSync(catchAllDir, { recursive: true });
 
     const catchAllPath = path.join(catchAllDir, 'page.tsx');
     const catchAllContent = `
-import { CMSPage } from '@cms-builder/core';
-import design from '@/lib/design.json';
+import { CMSPage, cmsApi } from '@cms-builder/core';
+
+const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${projectName}';
 
 export default async function CatchAllPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
   const route = '/' + (slug || []).join('/');
-  return <CMSPage design={design as any} route={route} />
+  const [design, instances] = await Promise.all([
+    cmsApi.getSiteContent(PROJECT).catch(() => null),
+    cmsApi.getPageComponents(PROJECT, route).catch(() => []),
+  ]);
+
+  if (!design) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-8">
+        <div className="max-w-xl text-center">
+          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
+          <p className="mt-3 text-gray-600">
+            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
 }
 `.trim();
     fs.writeFileSync(catchAllPath, catchAllContent);
