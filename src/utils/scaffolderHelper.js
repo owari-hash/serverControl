@@ -216,6 +216,8 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
   _generateGlobalsCss(design, projectPath) {
     const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
     const cssContent = "@import \"tailwindcss\";\n" +
+      "@source \"../node_modules/@cms-builder/core/src/**/*.{js,ts,jsx,tsx,mdx}\";\n" +
+      "@source \"../node_modules/@cms-builder/core/dist/**/*.{js,ts,jsx,tsx,mjs}\";\n" +
       "\n@theme {\n" +
       "  --color-primary: var(--primary-color);\n" +
       "  --color-secondary: var(--secondary-color);\n" +
