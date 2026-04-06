@@ -173,6 +173,7 @@ router.get('/types/registry', (req, res) => {
     { type: 'container', category: 'layout', slots: ['default'], description: 'Max-width container', version: '1.0.0', capabilities: ['layout'], requiredProps: [], deprecations: [] },
     { type: 'pagination', category: 'primitive', description: 'Page navigation', version: '1.0.0', capabilities: ['navigation'], requiredProps: [], deprecations: [] },
     { type: 'button', category: 'primitive', description: 'Clickable button', version: '1.0.0', capabilities: ['interaction'], requiredProps: [], deprecations: [] },
+    { type: 'modal', category: 'primitive', description: 'Customizable modal dialog', version: '1.0.0', capabilities: ['interaction', 'overlay', 'dialog'], requiredProps: [], deprecations: [] },
   ];
   
   res.json(envelope(types));
