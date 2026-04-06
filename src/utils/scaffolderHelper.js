@@ -39,7 +39,36 @@ class ScaffolderEngine {
   }
 
   async _generatePages(design, projectPath) {
-    const { pages } = design;
+    if (!design) {
+      console.log('[Scaffolder] No design provided, creating default home page');
+      const homePageContent = `
+import { CMSPage } from '@cms-builder/core';
+import design from '@/lib/design.json';
+
+export default function Page() {
+  return <CMSPage design={design as any} route="/" />
+}
+`.trim();
+      fs.writeFileSync(path.join(projectPath, 'src', 'app', 'page.tsx'), homePageContent);
+      return;
+    }
+    
+    const { pages = [] } = design;
+    
+    if (!Array.isArray(pages) || pages.length === 0) {
+      console.log('[Scaffolder] No pages defined in design, creating default home page');
+      // Create at least a home page
+      const homePageContent = `
+import { CMSPage } from '@cms-builder/core';
+import design from '@/lib/design.json';
+
+export default function Page() {
+  return <CMSPage design={design as any} route="/" />
+}
+`.trim();
+      fs.writeFileSync(path.join(projectPath, 'src', 'app', 'page.tsx'), homePageContent);
+      return;
+    }
     
     for (const page of pages) {
       let routeDir = path.join(projectPath, 'src', 'app');

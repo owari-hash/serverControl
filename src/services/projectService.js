@@ -167,8 +167,28 @@ class ProjectService {
 
   async createNewSite(projectName) {
     const WebsiteDesign = require('../models/WebsiteDesign');
-    const design = await WebsiteDesign.findOne({ projectName });
-    if (!design) throw new Error(`Design for ${projectName} not found`);
+    let design = await WebsiteDesign.findOne({ projectName });
+    
+    // Auto-create default design if not found
+    if (!design) {
+      console.log(`[${projectName}] No design found, creating default design...`);
+      design = await WebsiteDesign.create({
+        projectName,
+        theme: {
+          primaryColor: '#0070f3',
+          secondaryColor: '#7928ca',
+          backgroundColor: '#ffffff',
+          textColor: '#000000',
+          darkMode: false
+        },
+        typography: {
+          headingFont: 'Inter',
+          bodyFont: 'Inter'
+        },
+        title: projectName,
+        description: `Website for ${projectName}`
+      });
+    }
 
     const project = await this.createNewProject(projectName);
     
