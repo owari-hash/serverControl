@@ -3,6 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const { PROJECTS_DIR } = require('../../config');
 
+function resolveCmsBuilderVersion() {
+  // 1) Explicit deployment override wins.
+  if (process.env.CMS_BUILDER_VERSION && process.env.CMS_BUILDER_VERSION.trim()) {
+    return process.env.CMS_BUILDER_VERSION.trim();
+  }
+  // 2) Auto-latest by default from private registry.
+  return 'latest';
+}
+
 // Create Next.js project
 async function createProject(projectName) {
   const projectPath = path.join(PROJECTS_DIR, projectName);
@@ -58,10 +67,12 @@ async function createProject(projectName) {
     
     console.log(`Installing dependencies for ${projectName}`);
     
-    // 1. Add @cms-builder/core from registry (latest)
+    // 1. Pin @cms-builder/core to a deterministic version whenever possible.
+    const cmsBuilderVersion = resolveCmsBuilderVersion();
+    const cmsBuilderSpecifier = cmsBuilderVersion === 'latest' ? 'latest' : cmsBuilderVersion;
     const pkgPath = path.join(projectPath, 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    pkg.dependencies['@cms-builder/core'] = 'latest';
+    pkg.dependencies['@cms-builder/core'] = cmsBuilderSpecifier;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
     // 2. Setup .npmrc for the private registry
@@ -91,9 +102,21 @@ export default nextConfig;
     const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://202.179.6.77:4000/api`;
     fs.writeFileSync(envPath, envContent);
 
-    console.log(`[${projectName}] Running npm install...`);
+    // Ensure lockfile does not keep stale framework versions from template copy.
+    const lockFilePath = path.join(projectPath, 'package-lock.json');
+    if (fs.existsSync(lockFilePath)) {
+      fs.unlinkSync(lockFilePath);
+    }
+
+    console.log(`[${projectName}] Running npm install (cmsBuilder: ${cmsBuilderSpecifier})...`);
     try {
       execSync('npm install --legacy-peer-deps', {
+        stdio: 'inherit',
+        cwd: projectPath,
+        env: { ...process.env, NODE_ENV: 'development' }
+      });
+      // Force framework package to intended version in case registry latest/tag drift exists.
+      execSync(`npm install @cms-builder/core@${cmsBuilderSpecifier} --registry http://202.179.6.77:4873/ --legacy-peer-deps`, {
         stdio: 'inherit',
         cwd: projectPath,
         env: { ...process.env, NODE_ENV: 'development' }
