@@ -98,7 +98,7 @@ class ScaffolderEngine {
       const pageContent = `
 import { CMSPage, cmsApi } from '@cms-builder/core';
 
-const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${normalizedDesign.projectName}';
+const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${design.projectName}';
 
 export default async function Page() {
   const route = "${page.route}";
