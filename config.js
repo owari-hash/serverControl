@@ -9,5 +9,6 @@ module.exports = {
   GITHUB_USERNAME: process.env.GITHUB_USERNAME || '',
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/website-generator',
   AUTH_EMAIL: process.env.AUTH_EMAIL || 'admin@demo.com',
-  AUTH_PASSWORD: process.env.AUTH_PASSWORD || '123456'
+  AUTH_PASSWORD: process.env.AUTH_PASSWORD || '123456',
+  CORS_ORIGINS: process.env.CORS_ORIGINS || '*'
 };
