@@ -16,6 +16,14 @@ class ProjectService {
     }
   }
 
+  normalizeProjectName(projectName = '') {
+    return String(projectName)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   async init() {
     console.log('Initializing Project Service from database...');
     const projects = await Project.find({});
@@ -52,10 +60,7 @@ class ProjectService {
   }
 
   async createNewProject(projectName) {
-    const sanitizedName = projectName.toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const sanitizedName = this.normalizeProjectName(projectName);
 
     if (this.runningProjects.has(sanitizedName)) {
       throw new Error('Project already exists');
@@ -167,13 +172,18 @@ class ProjectService {
 
   async createNewSite(projectName) {
     const WebsiteDesign = require('../models/WebsiteDesign');
-    let design = await WebsiteDesign.findOne({ projectName });
+    const sanitizedName = this.normalizeProjectName(projectName);
+    if (!sanitizedName) {
+      throw new Error('Project name is required');
+    }
+
+    let design = await WebsiteDesign.findOne({ projectName: sanitizedName });
     
     // Auto-create default design if not found
     if (!design) {
-      console.log(`[${projectName}] No design found, creating default design...`);
+      console.log(`[${sanitizedName}] No design found, creating default design...`);
       design = await WebsiteDesign.create({
-        projectName,
+        projectName: sanitizedName,
         theme: {
           primaryColor: '#0070f3',
           secondaryColor: '#7928ca',
@@ -185,17 +195,17 @@ class ProjectService {
           headingFont: 'Inter',
           bodyFont: 'Inter'
         },
-        title: projectName,
-        description: `Website for ${projectName}`
+        title: sanitizedName,
+        description: `Website for ${sanitizedName}`
       });
     }
 
-    const project = await this.createNewProject(projectName);
+    const project = await this.createNewProject(sanitizedName);
     
     // Scaffolding components MUST happen before PM2 boots up Next.js
     // Otherwise Tailwind compilation and Turbopack caching will break.
     await scaffolder.generateSiteCode(design, project.path);
-    await createGitHubRepo(projectName, project.path);
+    await createGitHubRepo(sanitizedName, project.path);
     
     // Now start the project safely
     await this.startProject(project.name);

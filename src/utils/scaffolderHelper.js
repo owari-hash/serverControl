@@ -17,10 +17,14 @@ class ScaffolderEngine {
     const designPath = path.join(projectPath, 'src', 'lib', 'design.json');
     fs.writeFileSync(designPath, JSON.stringify(design, null, 2));
 
-    // 2. Generate Static Pages that consume this JSON
+    // 2. Always generate base route entrypoints
+    this._generateRootPage(projectPath);
+    this._generateCatchAllPage(projectPath);
+
+    // 3. Generate static pages when explicit routes are present
     await this._generatePages(design, projectPath);
 
-    // 3. Generate Layout & Styles
+    // 4. Generate Layout & Styles
     this._generateLayout(design, projectPath);
     this._generateGlobalsCss(design, projectPath);
 
@@ -40,33 +44,14 @@ class ScaffolderEngine {
 
   async _generatePages(design, projectPath) {
     if (!design) {
-      console.log('[Scaffolder] No design provided, creating default home page');
-      const homePageContent = `
-import { CMSPage } from '@cms-builder/core';
-import design from '@/lib/design.json';
-
-export default function Page() {
-  return <CMSPage design={design as any} route="/" />
-}
-`.trim();
-      fs.writeFileSync(path.join(projectPath, 'src', 'app', 'page.tsx'), homePageContent);
+      console.log('[Scaffolder] No design provided, using default generated entrypoints');
       return;
     }
     
     const { pages = [] } = design;
     
     if (!Array.isArray(pages) || pages.length === 0) {
-      console.log('[Scaffolder] No pages defined in design, creating default home page');
-      // Create at least a home page
-      const homePageContent = `
-import { CMSPage } from '@cms-builder/core';
-import design from '@/lib/design.json';
-
-export default function Page() {
-  return <CMSPage design={design as any} route="/" />
-}
-`.trim();
-      fs.writeFileSync(path.join(projectPath, 'src', 'app', 'page.tsx'), homePageContent);
+      console.log('[Scaffolder] No pages defined in design, using generated root/catch-all pages');
       return;
     }
     
@@ -92,6 +77,37 @@ export default function Page() {
       
       fs.writeFileSync(path.join(routeDir, 'page.tsx'), pageContent);
     }
+  }
+
+  _generateRootPage(projectPath) {
+    const rootPagePath = path.join(projectPath, 'src', 'app', 'page.tsx');
+    const rootPageContent = `
+import { CMSPage } from '@cms-builder/core';
+import design from '@/lib/design.json';
+
+export default function Page() {
+  return <CMSPage design={design as any} route="/" />
+}
+`.trim();
+    fs.writeFileSync(rootPagePath, rootPageContent);
+  }
+
+  _generateCatchAllPage(projectPath) {
+    const catchAllDir = path.join(projectPath, 'src', 'app', '[...slug]');
+    if (!fs.existsSync(catchAllDir)) fs.mkdirSync(catchAllDir, { recursive: true });
+
+    const catchAllPath = path.join(catchAllDir, 'page.tsx');
+    const catchAllContent = `
+import { CMSPage } from '@cms-builder/core';
+import design from '@/lib/design.json';
+
+export default async function CatchAllPage({ params }: { params: Promise<{ slug: string[] }> }) {
+  const { slug } = await params;
+  const route = '/' + (slug || []).join('/');
+  return <CMSPage design={design as any} route={route} />
+}
+`.trim();
+    fs.writeFileSync(catchAllPath, catchAllContent);
   }
 
   _generateLayout(design, projectPath) {
