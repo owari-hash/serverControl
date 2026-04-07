@@ -1,6 +1,7 @@
 const express = require('express');
 const designService = require('./designService');
 const { ok, fail } = require('../../shared/http/response');
+const { requireAuth } = require('../../shared/middleware/requireAuth');
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/:name', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { projectName } = req.body || {};
     if (!projectName) {
@@ -36,7 +37,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:name', async (req, res) => {
+router.patch('/:name', requireAuth, async (req, res) => {
   try {
     const design = await designService.createOrUpdateDesign(req.params.name, req.body || {});
     res.json(ok({ success: true, design }));
@@ -45,7 +46,7 @@ router.patch('/:name', async (req, res) => {
   }
 });
 
-router.delete('/:name', async (req, res) => {
+router.delete('/:name', requireAuth, async (req, res) => {
   try {
     await designService.deleteDesign(req.params.name);
     res.json(ok({ success: true, message: `Design ${req.params.name} deleted` }));

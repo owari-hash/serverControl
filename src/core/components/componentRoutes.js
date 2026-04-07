@@ -1,6 +1,7 @@
 const express = require('express');
 const componentService = require('./componentService');
 const { ok, fail } = require('../../shared/http/response');
+const { requireAuth } = require('../../shared/middleware/requireAuth');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/tree', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const component = await componentService.create(req.context.projectId, req.body || {});
     res.status(201).json(ok({ success: true, component }));
@@ -37,7 +38,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:instanceId', async (req, res) => {
+router.patch('/:instanceId', requireAuth, async (req, res) => {
   try {
     const component = await componentService.update(
       req.context.projectId,
@@ -51,7 +52,7 @@ router.patch('/:instanceId', async (req, res) => {
   }
 });
 
-router.delete('/:instanceId', async (req, res) => {
+router.delete('/:instanceId', requireAuth, async (req, res) => {
   try {
     await componentService.remove(req.context.projectId, req.params.instanceId);
     res.json(ok({ success: true, message: `Component ${req.params.instanceId} deleted` }));
@@ -61,7 +62,7 @@ router.delete('/:instanceId', async (req, res) => {
   }
 });
 
-router.post('/reorder', async (req, res) => {
+router.post('/reorder', requireAuth, async (req, res) => {
   try {
     await componentService.reorder(req.context.projectId, req.body && req.body.instances);
     res.json(ok({ success: true }));
