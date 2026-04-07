@@ -12,7 +12,7 @@ logs/
 
 # Project directories (if they are stored locally)
 /home/projects
-projects/
+/projects/
 
 # OS files
 .DS_Store
