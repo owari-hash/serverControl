@@ -1,23 +1,24 @@
 const { spawn } = require('child_process');
 const projectService = require('../../services/projectService');
+const { ok, fail } = require('../../shared/http/response');
 
 class ProjectController {
   async getAllProjects(req, res) {
     try {
       const projects = await projectService.getAllProjects();
-      res.json({ success: true, projects });
+      res.json(ok({ success: true, projects }));
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json(fail(error.message));
     }
   }
 
   async getProject(req, res) {
     try {
       const project = await projectService.getProjectByName(req.params.name);
-      res.json({ success: true, project });
+      res.json(ok({ success: true, project }));
     } catch (error) {
       const status = error.message === 'Project not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: error.message });
+      res.status(status).json(fail(error.message));
     }
   }
 
@@ -25,55 +26,55 @@ class ProjectController {
     try {
       const { name } = req.body || {};
       if (!name) {
-        return res.status(400).json({ success: false, error: 'Project name is required' });
+        return res.status(400).json(fail('Project name is required'));
       }
 
       const project = await projectService.createNewProject(name);
-      return res.status(201).json({
+      return res.status(201).json(ok({
         success: true,
         project,
         url: `http://202.179.6.77:${project.port}`
-      });
+      }));
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json(fail(error.message));
     }
   }
 
   async updateProject(req, res) {
     try {
       const project = await projectService.updateProject(req.params.name, req.body || {});
-      res.json({ success: true, project });
+      res.json(ok({ success: true, project }));
     } catch (error) {
       const status = error.message === 'Project not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: error.message });
+      res.status(status).json(fail(error.message));
     }
   }
 
   async deleteProject(req, res) {
     try {
       await projectService.deleteProject(req.params.name);
-      res.json({ success: true, message: `Project ${req.params.name} deleted` });
+      res.json(ok({ success: true, message: `Project ${req.params.name} deleted` }));
     } catch (error) {
       const status = error.message === 'Project not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: error.message });
+      res.status(status).json(fail(error.message));
     }
   }
 
   async stopProject(req, res) {
     try {
       await projectService.stopProject(req.params.name);
-      res.json({ success: true, message: `Project ${req.params.name} stopped` });
+      res.json(ok({ success: true, message: `Project ${req.params.name} stopped` }));
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json(fail(error.message));
     }
   }
 
   async buildProject(req, res) {
     try {
       const result = await projectService.syncAndBuild(req.params.name);
-      res.json({ success: true, ...result });
+      res.json(ok({ success: true, ...result }));
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message, output: error.output });
+      res.status(500).json(fail(error.message, { output: error.output }));
     }
   }
 
@@ -81,17 +82,17 @@ class ProjectController {
     try {
       const { projectName } = req.body || {};
       if (!projectName) {
-        return res.status(400).json({ success: false, error: 'Project name is required' });
+        return res.status(400).json(fail('Project name is required'));
       }
 
       const project = await projectService.createNewSite(projectName);
-      res.json({
+      res.json(ok({
         success: true,
         project,
         url: `http://202.179.6.77:${project.port}`
-      });
+      }));
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json(fail(error.message));
     }
   }
 

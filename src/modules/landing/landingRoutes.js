@@ -1,13 +1,14 @@
 const express = require('express');
+const { ok } = require('../../shared/http/response');
 
 const router = express.Router();
 
 router.get('/health', (req, res) => {
-  res.json({
+  res.json(ok({
     success: true,
     module: 'landing',
     projectId: req.context.projectId
-  });
+  }));
 });
 
 module.exports = router;

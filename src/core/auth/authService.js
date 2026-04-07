@@ -1,6 +1,7 @@
 const config = require('../../../config');
+const tokenService = require('./tokenService');
 
-function login(email, password) {
+async function login(email, password) {
   const validEmail = config.AUTH_EMAIL || 'admin@demo.com';
   const validPassword = config.AUTH_PASSWORD || '123456';
 
@@ -8,13 +9,12 @@ function login(email, password) {
     return null;
   }
 
-  const tokenPayload = `${email}:${Date.now()}`;
-  const token = Buffer.from(tokenPayload).toString('base64url');
+  const user = { email, role: 'admin' };
+  const tokens = await tokenService.issueTokens(user);
 
   return {
-    user: { email, role: 'admin' },
-    token,
-    expiresIn: 60 * 60 * 24
+    user,
+    ...tokens
   };
 }
 

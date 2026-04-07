@@ -6,6 +6,8 @@ const ServerTargetSchema = new mongoose.Schema({
   port: { type: Number, default: 22 },
   user: { type: String, required: true },
   authMode: { type: String, enum: ['ssh-key', 'password', 'agent'], default: 'ssh-key' },
+  sshKeyPath: { type: String, default: '' },
+  knownHostsPath: { type: String, default: '' },
   labels: { type: [String], default: [] },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });

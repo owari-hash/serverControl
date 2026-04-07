@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const apiRoutes = require("./api");
 const config = require("../config");
+const { fail } = require("./shared/http/response");
 
 const app = express();
 
@@ -35,7 +36,7 @@ app.use("/api", apiRoutes);
 
 // 404 Handler
 app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json(fail("Route not found"));
 });
 
 // Global Error Handler
@@ -43,7 +44,7 @@ app.use((err, req, res, next) => {
   console.error("Unhandled Error:", err);
   res
     .status(500)
-    .json({ error: "An unexpected error occurred", details: err.message });
+    .json(fail("An unexpected error occurred", err.message));
 });
 
 module.exports = app;
