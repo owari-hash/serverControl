@@ -1,13 +1,13 @@
 {
   "info": {
-    "name": "CMS Generate + 5 Pages Seed (Ready)",
-    "description": "Generate project, seed 5-page design, seed component instances per page, and verify data/render endpoints.",
+    "name": "ServerControl v2 API Collection",
+    "description": "Энэ collection нь ServerControl-ийн шинэ v2 modular API-г бүрэн шалгах зориулалттай. Зохиогч: Otgonbileg Enkhtaivan.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://202.179.6.77:4000/api",
+      "value": "http://202.179.6.77:4000/api/v2",
       "type": "string"
     },
     {
@@ -16,130 +16,54 @@
       "type": "string"
     },
     {
-      "key": "projectUrl",
+      "key": "componentId",
       "value": "",
       "type": "string"
     },
     {
-      "key": "route1",
-      "value": "/",
+      "key": "serverId",
+      "value": "",
       "type": "string"
     },
     {
-      "key": "route2",
-      "value": "/about",
-      "type": "string"
-    },
-    {
-      "key": "route3",
-      "value": "/services",
-      "type": "string"
-    },
-    {
-      "key": "route4",
-      "value": "/booking",
-      "type": "string"
-    },
-    {
-      "key": "route5",
-      "value": "/contact",
+      "key": "domain",
+      "value": "demo.local",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "1) Generate Site (Create + Scaffold + Start)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status is success', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "const json = pm.response.json();",
-              "pm.test('Response success true', function () {",
-              "  pm.expect(json.success).to.eql(true);",
-              "});",
-              "if (json.url) { pm.collectionVariables.set('projectUrl', json.url); }",
-              "if (json.project && json.project.name) { pm.collectionVariables.set('projectName', json.project.name); }"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"projectName\": \"{{projectName}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/projects/generate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "projects",
-            "generate"
-          ]
-        }
-      }
-    },
-    {
-      "name": "2) Upsert Design (5 pages)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"domain\": \"{{projectName}}.local\",\n  \"theme\": {\n    \"primaryColor\": \"#3b82f6\",\n    \"secondaryColor\": \"#1f2937\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false,\n    \"customTokens\": {\n      \"industry\": \"service\"\n    }\n  },\n  \"pages\": [\n    { \"route\": \"{{route1}}\", \"title\": \"Home\", \"description\": \"Landing page\" },\n    { \"route\": \"{{route2}}\", \"title\": \"About\", \"description\": \"About page\" },\n    { \"route\": \"{{route3}}\", \"title\": \"Services\", \"description\": \"Services page\" },\n    { \"route\": \"{{route4}}\", \"title\": \"Booking\", \"description\": \"Booking page\" },\n    { \"route\": \"{{route5}}\", \"title\": \"Contact\", \"description\": \"Contact page\" }\n  ]\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/designs",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "designs"
-          ]
-        }
-      }
-    },
-    {
-      "name": "3) Get Project Record",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/projects/{{projectName}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "projects",
-            "{{projectName}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "4) Seed Components - Home (/)",
+      "name": "API Root",
+      "description": "Системийн үндсэн API root болон хувилбарын мэдээлэл шалгана.",
       "item": [
         {
-          "name": "Create Header",
+          "name": "GET /api (metadata)",
+          "request": {
+            "method": "GET",
+            "description": "API ажиллаж байгаа эсэх болон version жагсаалтыг шалгана.",
+            "url": {
+              "raw": "{{baseUrl}}/../",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "..",
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Auth",
+      "description": "Нэвтрэх болон authentication шалгах endpoint-ууд.",
+      "item": [
+        {
+          "name": "POST /core/auth/login",
           "request": {
             "method": "POST",
+            "description": "Админ хэрэглэгчийн login хийж токен авах.",
             "header": [
               {
                 "key": "Content-Type",
@@ -148,329 +72,855 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"links\": [\n      { \"href\": \"{{route1}}\", \"label\": \"Home\" },\n      { \"href\": \"{{route2}}\", \"label\": \"About\" },\n      { \"href\": \"{{route3}}\", \"label\": \"Services\" },\n      { \"href\": \"{{route4}}\", \"label\": \"Booking\" },\n      { \"href\": \"{{route5}}\", \"label\": \"Contact\" }\n    ]\n  }\n}"
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"123456\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["components", "instances", "{{projectName}}"]
-            }
-          }
-        },
-        {
-          "name": "Create Hero",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"Scalable multi-industry CMS\",\n    \"align\": \"center\",\n    \"spacing\": \"lg\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["components", "instances", "{{projectName}}"]
-            }
-          }
-        },
-        {
-          "name": "Create Footer",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route1}}\",\n  \"order\": 2,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"copyright\": \"2026 {{projectName}}\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/components/instances/{{projectName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["components", "instances", "{{projectName}}"]
+              "raw": "{{baseUrl}}/core/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "auth",
+                "login"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "5) Seed Components - About (/about)",
+      "name": "Core Projects",
+      "description": "Төслийн lifecycle (үүсгэх, харах, build, stop, delete) бүх CRUD болон үйлдлүүд.",
       "item": [
         {
-          "name": "Create Header",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"About {{projectName}}\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create About",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 1,\n  \"props\": { \"description\": \"We build robust digital platforms\", \"align\": \"left\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Footer",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route2}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "6) Seed Components - Services (/services)",
-      "item": [
-        {
-          "name": "Create Header",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Services\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Grid",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"grid\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 1,\n  \"props\": { \"columns\": 3, \"gap\": \"md\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Footer",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route3}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "7) Seed Components - Booking (/booking)",
-      "item": [
-        {
-          "name": "Create Header",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Booking\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Container",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"container\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 1,\n  \"props\": { \"maxWidth\": \"xl\", \"padding\": \"lg\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Footer",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route4}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "8) Seed Components - Contact (/contact)",
-      "item": [
-        {
-          "name": "Create Header",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 0,\n  \"props\": { \"title\": \"Contact\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create About",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 1,\n  \"props\": { \"description\": \"Contact us any time\", \"align\": \"center\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        },
-        {
-          "name": "Create Footer",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{route5}}\",\n  \"order\": 2,\n  \"props\": { \"title\": \"{{projectName}}\", \"copyright\": \"2026 {{projectName}}\" }\n}" },
-            "url": { "raw": "{{baseUrl}}/components/instances/{{projectName}}", "host": ["{{baseUrl}}"], "path": ["components", "instances", "{{projectName}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "9) Get Site Content (Envelope/Legacy Compatible)",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/sites/{{projectName}}/content",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "sites",
-            "{{projectName}}",
-            "content"
-          ]
-        }
-      }
-    },
-    {
-      "name": "10) Verify Instances - /",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2F",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "components",
-            "instances",
-            "{{projectName}}"
-          ],
-          "query": [
+          "name": "POST /core/projects/generate",
+          "event": [
             {
-              "key": "pageRoute",
-              "value": "/"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Амжилттай үүсэв', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "  pm.expect(json.success).to.eql(true);",
+                  "});",
+                  "if (json.project && json.project.name) { pm.collectionVariables.set('projectName', json.project.name); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Project үүсгээд scaffold хийж ажиллуулна.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/projects",
+          "request": {
+            "method": "GET",
+            "description": "Бүх төслийн жагсаалт авна.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/projects/:name",
+          "request": {
+            "method": "GET",
+            "description": "Нэг төслийн дэлгэрэнгүй мэдээлэл авна.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /core/projects",
+          "request": {
+            "method": "POST",
+            "description": "Шинэ төсөл үүсгэнэ (generate хийхгүй үндсэн create).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{projectName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /core/projects/:name",
+          "request": {
+            "method": "PATCH",
+            "description": "Төслийн мэдээллийг шинэчилнэ.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"STOPPED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /core/projects/:name/build",
+          "request": {
+            "method": "POST",
+            "description": "Төслийг build болон sync үйлдэл хийнэ.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}/build",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}",
+                "build"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /core/projects/:name/stop",
+          "request": {
+            "method": "POST",
+            "description": "Ажиллаж буй төслийг зогсооно.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}/stop",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}",
+                "stop"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/projects/:name/logs/live",
+          "request": {
+            "method": "GET",
+            "description": "Төслийн live log stream (SSE) үзэх endpoint.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}/logs/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}",
+                "logs",
+                "live"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /core/projects/:name",
+          "request": {
+            "method": "DELETE",
+            "description": "Төслийг системээс устгана.",
+            "url": {
+              "raw": "{{baseUrl}}/core/projects/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "projects",
+                "{{projectName}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Designs",
+      "description": "Design metadata болон page structure-ийн CRUD endpoint-ууд.",
+      "item": [
+        {
+          "name": "POST /core/designs",
+          "request": {
+            "method": "POST",
+            "description": "Design upsert хийх (байхгүй бол үүсгэнэ, байвал шинэчилнэ).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"domain\": \"{{projectName}}.local\",\n  \"theme\": {\n    \"primaryColor\": \"#3b82f6\",\n    \"secondaryColor\": \"#1f2937\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false\n  },\n  \"pages\": [\n    { \"route\": \"/\", \"title\": \"Home\", \"description\": \"Landing page\" },\n    { \"route\": \"/about\", \"title\": \"About\", \"description\": \"About page\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/designs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "designs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/designs",
+          "request": {
+            "method": "GET",
+            "description": "Бүх design жагсаалт авах.",
+            "url": {
+              "raw": "{{baseUrl}}/core/designs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "designs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/designs/:name",
+          "request": {
+            "method": "GET",
+            "description": "Нэг төслийн design мэдээлэл авах.",
+            "url": {
+              "raw": "{{baseUrl}}/core/designs/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "designs",
+                "{{projectName}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /core/designs/:name",
+          "request": {
+            "method": "PATCH",
+            "description": "Нэг төслийн design update хийх.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theme\": {\n    \"primaryColor\": \"#10b981\",\n    \"secondaryColor\": \"#111827\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/designs/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "designs",
+                "{{projectName}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /core/designs/:name",
+          "request": {
+            "method": "DELETE",
+            "description": "Нэг төслийн design устгах.",
+            "url": {
+              "raw": "{{baseUrl}}/core/designs/{{projectName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "designs",
+                "{{projectName}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Components",
+      "description": "Component instance CRUD болон reorder/tree endpoint-ууд. Энд заавал x-project-id хэрэгтэй.",
+      "item": [
+        {
+          "name": "POST /core/components",
+          "request": {
+            "method": "POST",
+            "description": "Шинэ component instance үүсгэнэ.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"/\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"CMS powered page\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/components",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.component && json.component.instanceId) {",
+                  "  pm.collectionVariables.set('componentId', json.component.instanceId);",
+                  "}"
+                ]
+              }
             }
           ]
+        },
+        {
+          "name": "GET /core/components?pageRoute=/",
+          "request": {
+            "method": "GET",
+            "description": "Төслийн component-уудыг route-аар шүүж авах.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/core/components?pageRoute=/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components"
+              ],
+              "query": [
+                {
+                  "key": "pageRoute",
+                  "value": "/"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/components/tree?pageRoute=/",
+          "request": {
+            "method": "GET",
+            "description": "Component tree бүтэцтэйгээр авах.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/core/components/tree?pageRoute=/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components",
+                "tree"
+              ],
+              "query": [
+                {
+                  "key": "pageRoute",
+                  "value": "/"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /core/components/:instanceId",
+          "request": {
+            "method": "PATCH",
+            "description": "Нэг component-ийн props болон бусад талбар update хийх.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"props\": {\n    \"title\": \"Updated title\",\n    \"subtitle\": \"Updated subtitle\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/components/{{componentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components",
+                "{{componentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /core/components/reorder",
+          "request": {
+            "method": "POST",
+            "description": "Олон component-ийн order-ийг bulk байдлаар шинэчилнэ.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instances\": [\n    { \"instanceId\": \"{{componentId}}\", \"order\": 1 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/core/components/reorder",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components",
+                "reorder"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /core/components/:instanceId",
+          "request": {
+            "method": "DELETE",
+            "description": "Component instance болон доорх tree-г устгана.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/core/components/{{componentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "components",
+                "{{componentId}}"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "11) Verify Instances - /about",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fabout",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", "instances", "{{projectName}}"],
-          "query": [{ "key": "pageRoute", "value": "/about" }]
+      "name": "Core Users + Permissions",
+      "description": "Суурь users/permissions endpoint-ууд (одоогоор foundation response өгнө).",
+      "item": [
+        {
+          "name": "GET /core/users",
+          "request": {
+            "method": "GET",
+            "description": "Users module суурь endpoint шалгах.",
+            "url": {
+              "raw": "{{baseUrl}}/core/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /core/permissions",
+          "request": {
+            "method": "GET",
+            "description": "Permissions module суурь endpoint шалгах.",
+            "url": {
+              "raw": "{{baseUrl}}/core/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "core",
+                "permissions"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "12) Verify Instances - /services",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fservices",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", "instances", "{{projectName}}"],
-          "query": [{ "key": "pageRoute", "value": "/services" }]
+      "name": "Product Modules",
+      "description": "ecommerce, landing, inventory модулиудын health endpoint.",
+      "item": [
+        {
+          "name": "GET /modules/ecommerce/health",
+          "request": {
+            "method": "GET",
+            "description": "Ecommerce модуль ажиллаж байгаа эсэхийг project context-той шалгана.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/modules/ecommerce/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "ecommerce",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /modules/landing/health",
+          "request": {
+            "method": "GET",
+            "description": "Landing модуль ажиллаж байгаа эсэхийг project context-той шалгана.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/modules/landing/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "landing",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /modules/inventory/health",
+          "request": {
+            "method": "GET",
+            "description": "Inventory модуль ажиллаж байгаа эсэхийг project context-той шалгана.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/modules/inventory/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules",
+                "inventory",
+                "health"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "13) Verify Instances - /booking",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fbooking",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", "instances", "{{projectName}}"],
-          "query": [{ "key": "pageRoute", "value": "/booking" }]
-        }
-      }
-    },
-    {
-      "name": "14) Verify Instances - /contact",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/instances/{{projectName}}?pageRoute=%2Fcontact",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", "instances", "{{projectName}}"],
-          "query": [{ "key": "pageRoute", "value": "/contact" }]
-        }
-      }
-    },
-    {
-      "name": "15) Get Component Type Registry (Versioned)",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/types/registry",
-          "host": [
-            "{{baseUrl}}"
+      "name": "Infrastructure Servers",
+      "description": "Олон серверийн registry болон remote command execution endpoint-ууд.",
+      "item": [
+        {
+          "name": "POST /infrastructure/servers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.server && json.server._id) {",
+                  "  pm.collectionVariables.set('serverId', json.server._id);",
+                  "}"
+                ]
+              }
+            }
           ],
-          "path": [
-            "components",
-            "types",
-            "registry"
-          ]
+          "request": {
+            "method": "POST",
+            "description": "Шинэ сервер target бүртгэх.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"main-node-1\",\n  \"host\": \"127.0.0.1\",\n  \"port\": 22,\n  \"user\": \"ubuntu\",\n  \"authMode\": \"ssh-key\",\n  \"labels\": [\"prod\", \"primary\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/servers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "servers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /infrastructure/servers",
+          "request": {
+            "method": "GET",
+            "description": "Бүртгэлтэй серверүүдийн жагсаалт.",
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/servers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "servers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /infrastructure/servers/:id/exec",
+          "request": {
+            "method": "POST",
+            "description": "Сонгосон сервер дээр command ажиллуулах (одоогоор abstraction/stub).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"nginx -t\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/servers/{{serverId}}/exec",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "servers",
+                "{{serverId}}",
+                "exec"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "16) Open Generated Root URL (Manual browser check)",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{projectUrl}}",
-          "host": [
-            "{{projectUrl}}"
-          ]
+      "name": "Infrastructure Domains",
+      "description": "Domain binding болон Nginx config үүсгэх/идэвхжүүлэх endpoint-ууд.",
+      "item": [
+        {
+          "name": "POST /infrastructure/domains/bind",
+          "request": {
+            "method": "POST",
+            "description": "Domain-ийг төсөлтэй холбоод Nginx candidate config үүсгэнэ.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"{{domain}}\",\n  \"upstreamHost\": \"127.0.0.1\",\n  \"upstreamPort\": 5001\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/domains/bind",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "domains",
+                "bind"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /infrastructure/domains",
+          "request": {
+            "method": "GET",
+            "description": "Төслийн domain binding жагсаалтыг авах.",
+            "header": [
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/domains",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "domains"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /infrastructure/domains/:domain/enabled",
+          "request": {
+            "method": "PATCH",
+            "description": "Domain mapping-ийг идэвхжүүлэх/идэвхгүй болгох.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-project-id",
+                "value": "{{projectName}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isEnabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/infrastructure/domains/{{domain}}/enabled",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infrastructure",
+                "domains",
+                "{{domain}}",
+                "enabled"
+              ]
+            }
+          }
         }
-      }
-    },
-    {
-      "name": "17) Open /about (Manual browser check)",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{projectUrl}}/about",
-          "host": [
-            "{{projectUrl}}"
-          ],
-          "path": [
-            "about"
-          ]
-        }
-      }
-    },
-    {
-      "name": "18) Open /services (Manual browser check)",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{projectUrl}}/services",
-          "host": ["{{projectUrl}}"],
-          "path": ["services"]
-        }
-      }
+      ]
     }
   ]
 }
