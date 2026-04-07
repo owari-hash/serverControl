@@ -5,8 +5,8 @@ function resolveProject(req) {
   return (
     (req.context && req.context.projectId) ||
     (req.body && req.body.projectName) ||
-    req.params.projectName ||
-    req.params.name ||
+    (req.params && req.params.projectName) ||
+    (req.params && req.params.name) ||
     null
   );
 }

@@ -39,3 +39,19 @@
   - `/api/v2/core/auth/logout`
   - `/api/v2/core/auth/me`
 - Refresh token sessions stored in `AuthSession` model.
+- Login/refresh endpoints are rate-limited.
+- Optional httpOnly refresh cookie support is configurable via env.
+
+## Tenant Authorization
+- `User` model stores identity and global role (`superadmin`, `client-admin`, `editor`).
+- `UserProjectBinding` model stores per-project access and binding roles.
+- `requireProjectAccess` middleware enforces project-scoped authorization.
+- `requireRole` middleware enforces platform-level authorization.
+
+## Authorization Matrix
+- Project list/details/logs: authenticated users filtered by project bindings.
+- Project create/delete/generate: `superadmin` only.
+- Project build/stop/update: `client-admin` on assigned projects.
+- Design and component writes: `client-admin`/`editor` on assigned projects.
+- Domain bind/toggle: `client-admin` on assigned projects.
+- Server registry and remote exec: `superadmin` only.

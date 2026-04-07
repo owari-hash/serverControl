@@ -1,0 +1,464 @@
+{
+  "info": {
+    "name": "ClientAdmin Production Workflow (v2)",
+    "_postman_id": "f3ff9baf-2edd-4d8a-bad2-7bb6f9de634d",
+    "description": "End-to-end production workflow: superadmin bootstraps project and client-admin binding, then client-admin performs content CRUD, reorder, publish, and domain operations with fully customizable payloads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "apiBase", "value": "http://202.179.6.77:4000/api/v2", "type": "string" },
+    { "key": "projectName", "value": "client-admin-demo-{{$timestamp}}", "type": "string" },
+    { "key": "projectHost", "value": "202.179.6.77", "type": "string" },
+    { "key": "projectPort", "value": "5003", "type": "string" },
+    { "key": "domain", "value": "client-demo.local", "type": "string" },
+
+    { "key": "superadminEmail", "value": "admin@demo.com", "type": "string" },
+    { "key": "superadminPassword", "value": "123456", "type": "string" },
+    { "key": "superadminAccessToken", "value": "", "type": "string" },
+    { "key": "superadminRefreshToken", "value": "", "type": "string" },
+
+    { "key": "clientAdminEmail", "value": "client-admin@example.com", "type": "string" },
+    { "key": "clientAdminPassword", "value": "clientAdminPass123", "type": "string" },
+    { "key": "clientAccessToken", "value": "", "type": "string" },
+    { "key": "clientRefreshToken", "value": "", "type": "string" },
+
+    { "key": "routeHome", "value": "/", "type": "string" },
+    { "key": "routeAbout", "value": "/about", "type": "string" },
+    { "key": "routeServices", "value": "/services", "type": "string" },
+    { "key": "routeBlog", "value": "/blog", "type": "string" },
+    { "key": "routeContact", "value": "/contact", "type": "string" },
+
+    { "key": "heroInstanceId", "value": "", "type": "string" },
+    { "key": "aboutInstanceId", "value": "", "type": "string" },
+    { "key": "postsGridInstanceId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00) Superadmin Bootstrap",
+      "description": "Use superadmin to authenticate, create project, create client-admin user, and bind user to project.",
+      "item": [
+        {
+          "name": "POST /core/auth/login (superadmin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('superadminAccessToken', body.data.accessToken);",
+                  "pm.collectionVariables.set('superadminRefreshToken', body.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadminEmail}}\",\n  \"password\": \"{{superadminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/auth/login", "host": ["{{apiBase}}"], "path": ["core", "auth", "login"] }
+          }
+        },
+        {
+          "name": "POST /core/projects/generate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superadminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"projectName\": \"{{projectName}}\"\n}" },
+            "url": { "raw": "{{apiBase}}/core/projects/generate", "host": ["{{apiBase}}"], "path": ["core", "projects", "generate"] }
+          }
+        },
+        {
+          "name": "POST /core/users (create client-admin user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superadminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientAdminEmail}}\",\n  \"password\": \"{{clientAdminPassword}}\",\n  \"role\": \"client-admin\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/users", "host": ["{{apiBase}}"], "path": ["core", "users"] }
+          }
+        },
+        {
+          "name": "POST /core/users/:email/bindings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superadminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"roles\": [\"client-admin\", \"editor\"]\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/core/users/{{clientAdminEmail}}/bindings",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "users", "{{clientAdminEmail}}", "bindings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01) Client Admin Auth + Context",
+      "description": "Login as client-admin and validate project access context.",
+      "item": [
+        {
+          "name": "POST /core/auth/login (client-admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('clientAccessToken', body.data.accessToken);",
+                  "pm.collectionVariables.set('clientRefreshToken', body.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientAdminEmail}}\",\n  \"password\": \"{{clientAdminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/auth/login", "host": ["{{apiBase}}"], "path": ["core", "auth", "login"] }
+          }
+        },
+        {
+          "name": "GET /core/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }],
+            "url": { "raw": "{{apiBase}}/core/auth/me", "host": ["{{apiBase}}"], "path": ["core", "auth", "me"] }
+          }
+        },
+        {
+          "name": "GET /core/projects",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }],
+            "url": { "raw": "{{apiBase}}/core/projects", "host": ["{{apiBase}}"], "path": ["core", "projects"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02) Design (5 Pages, fully customizable)",
+      "item": [
+        {
+          "name": "POST /core/designs (upsert)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"domain\": \"{{domain}}\",\n  \"theme\": {\n    \"primaryColor\": \"#2563eb\",\n    \"secondaryColor\": \"#0f172a\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false,\n    \"customTokens\": {\n      \"heroBackground\": \"linear-gradient(135deg,#0f172a,#1e3a8a)\",\n      \"buttonRadius\": \"14px\",\n      \"cardShadow\": \"0 20px 45px rgba(2,6,23,0.18)\"\n    }\n  },\n  \"pages\": [\n    { \"route\": \"{{routeHome}}\", \"title\": \"Home\", \"description\": \"Landing and conversion\" },\n    { \"route\": \"{{routeAbout}}\", \"title\": \"About\", \"description\": \"Company story\" },\n    { \"route\": \"{{routeServices}}\", \"title\": \"Services\", \"description\": \"Service catalog\" },\n    { \"route\": \"{{routeBlog}}\", \"title\": \"Blog\", \"description\": \"Posts and updates\" },\n    { \"route\": \"{{routeContact}}\", \"title\": \"Contact\", \"description\": \"Contact and lead form\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/designs", "host": ["{{apiBase}}"], "path": ["core", "designs"] }
+          }
+        },
+        {
+          "name": "GET /core/designs/:project",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{apiBase}}/core/designs/{{projectName}}", "host": ["{{apiBase}}"], "path": ["core", "designs", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03) Components CRUD (structured content payloads)",
+      "description": "Create structured components with deep props. Capture instance IDs for update/delete/reorder.",
+      "item": [
+        {
+          "name": "POST Hero (Home)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body?.data?.component?.instanceId) pm.collectionVariables.set('heroInstanceId', body.data.component.instanceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"Production-ready, multi-project CMS platform\",\n    \"align\": \"center\",\n    \"theme\": \"primary\",\n    \"spacing\": \"xl\",\n    \"buttons\": [\n      { \"text\": \"Book Demo\", \"href\": \"{{routeContact}}\", \"variant\": \"primary\", \"size\": \"lg\" },\n      { \"text\": \"Read Blog\", \"href\": \"{{routeBlog}}\", \"variant\": \"outline\", \"size\": \"lg\" }\n    ],\n    \"images\": [\n      { \"url\": \"https://images.unsplash.com/photo-1557804506-669a67965ba0\", \"alt\": \"Workspace\" }\n    ]\n  }\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "POST About (About page)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body?.data?.component?.instanceId) pm.collectionVariables.set('aboutInstanceId', body.data.component.instanceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{routeAbout}}\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"About our team\",\n    \"description\": \"We help companies deliver reliable digital experiences with modular architecture and rapid iteration.\",\n    \"align\": \"left\",\n    \"theme\": \"light\",\n    \"button\": { \"text\": \"Contact us\", \"href\": \"{{routeContact}}\", \"variant\": \"secondary\" }\n  }\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "POST Grid (Blog posts structure)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body?.data?.component?.instanceId) pm.collectionVariables.set('postsGridInstanceId', body.data.component.instanceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"componentType\": \"grid\",\n  \"pageRoute\": \"{{routeBlog}}\",\n  \"order\": 0,\n  \"props\": {\n    \"columns\": 3,\n    \"gap\": \"lg\",\n    \"theme\": \"light\",\n    \"items\": [\n      {\n        \"title\": \"How to design modular CMS\",\n        \"excerpt\": \"Bounded contexts, clean APIs, and scalable extraction strategy.\",\n        \"author\": \"Editorial Team\",\n        \"publishedAt\": \"2026-04-09\",\n        \"slug\": \"modular-cms-design\"\n      },\n      {\n        \"title\": \"Tenant access control in practice\",\n        \"excerpt\": \"Role + project binding approach for secure multi-project admin.\",\n        \"author\": \"Platform Team\",\n        \"publishedAt\": \"2026-04-08\",\n        \"slug\": \"tenant-access-control\"\n      },\n      {\n        \"title\": \"Deploying with custom domains\",\n        \"excerpt\": \"From domain bind to nginx validation and rollout.\",\n        \"author\": \"Infra Team\",\n        \"publishedAt\": \"2026-04-07\",\n        \"slug\": \"custom-domain-rollout\"\n      }\n    ]\n  }\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "PATCH Hero (update content)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}} - Updated\",\n    \"subtitle\": \"Editable, structured content with role-protected workflows\",\n    \"align\": \"center\",\n    \"theme\": \"primary\",\n    \"spacing\": \"xl\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/core/components/{{heroInstanceId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components", "{{heroInstanceId}}"]
+            }
+          }
+        },
+        {
+          "name": "POST Reorder Components (Home)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instances\": [\n    { \"instanceId\": \"{{heroInstanceId}}\", \"order\": 1 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/core/components/reorder",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components", "reorder"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04) Publish and Ops",
+      "description": "Client-admin operational flow after content update.",
+      "item": [
+        {
+          "name": "POST /core/projects/:name/build",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/projects/{{projectName}}/build",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "projects", "{{projectName}}", "build"]
+            }
+          }
+        },
+        {
+          "name": "POST /infrastructure/domains/bind",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"{{domain}}\",\n  \"upstreamHost\": \"{{projectHost}}\",\n  \"upstreamPort\": {{projectPort}}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/infrastructure/domains/bind",
+              "host": ["{{apiBase}}"],
+              "path": ["infrastructure", "domains", "bind"]
+            }
+          }
+        },
+        {
+          "name": "PATCH /infrastructure/domains/:domain/enabled",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isEnabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/infrastructure/domains/{{domain}}/enabled",
+              "host": ["{{apiBase}}"],
+              "path": ["infrastructure", "domains", "{{domain}}", "enabled"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05) Read Validation",
+      "item": [
+        {
+          "name": "GET Design",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{apiBase}}/core/designs/{{projectName}}", "host": ["{{apiBase}}"], "path": ["core", "designs", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "GET Components Home",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2F",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/" }]
+            }
+          }
+        },
+        {
+          "name": "GET Components Blog",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2Fblog",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/blog" }]
+            }
+          }
+        },
+        {
+          "name": "GET Domain List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/infrastructure/domains",
+              "host": ["{{apiBase}}"],
+              "path": ["infrastructure", "domains"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "99) Optional Cleanup",
+      "item": [
+        {
+          "name": "DELETE About Component",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/core/components/{{aboutInstanceId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components", "{{aboutInstanceId}}"]
+            }
+          }
+        },
+        {
+          "name": "POST /core/auth/logout (client-admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/auth/logout", "host": ["{{apiBase}}"], "path": ["core", "auth", "logout"] }
+          }
+        }
+      ]
+    }
+  ]
+}
