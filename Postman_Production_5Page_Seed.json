@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "ServerControl v2 - Production 5 Page Seed",
+    "_postman_id": "5b5922af-5c57-4d3d-9a7f-31b4cd6f20cb",
+    "description": "Production-ready collection for authenticated project bootstrap: login, generate project, upsert 5-page design, seed rich component trees, and verify rendered content APIs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "apiBase", "value": "http://202.179.6.77:4000/api/v2", "type": "string" },
+    { "key": "authEmail", "value": "admin@demo.com", "type": "string" },
+    { "key": "authPassword", "value": "123456", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "projectName", "value": "prod-seed-{{$timestamp}}", "type": "string" },
+    { "key": "routeHome", "value": "/", "type": "string" },
+    { "key": "routeAbout", "value": "/about", "type": "string" },
+    { "key": "routeServices", "value": "/services", "type": "string" },
+    { "key": "routeBooking", "value": "/booking", "type": "string" },
+    { "key": "routeContact", "value": "/contact", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1) Auth",
+      "description": "Authenticate and store bearer tokens for protected writes.",
+      "item": [
+        {
+          "name": "POST /core/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.version).to.exist;",
+                  "pm.expect(body.data.success).to.eql(true);",
+                  "pm.collectionVariables.set('accessToken', body.data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/auth/login", "host": ["{{apiBase}}"], "path": ["core", "auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2) Project Bootstrap",
+      "description": "Create and run target project.",
+      "item": [
+        {
+          "name": "POST /core/projects/generate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\"\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/projects/generate", "host": ["{{apiBase}}"], "path": ["core", "projects", "generate"] }
+          }
+        },
+        {
+          "name": "GET /core/projects/:name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{apiBase}}/core/projects/{{projectName}}", "host": ["{{apiBase}}"], "path": ["core", "projects", "{{projectName}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3) Upsert 5-Page Design",
+      "description": "Seed website design metadata and five navigable pages.",
+      "item": [
+        {
+          "name": "POST /core/designs",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"{{projectName}}\",\n  \"domain\": \"{{projectName}}.local\",\n  \"theme\": {\n    \"primaryColor\": \"#2563eb\",\n    \"secondaryColor\": \"#0f172a\",\n    \"fontFamily\": \"Inter\",\n    \"darkMode\": false,\n    \"customTokens\": {\n      \"brandRadius\": \"16px\",\n      \"brandShadow\": \"0 12px 32px rgba(15,23,42,0.18)\",\n      \"ctaGradient\": \"linear-gradient(135deg,#2563eb,#7c3aed)\"\n    }\n  },\n  \"pages\": [\n    { \"route\": \"{{routeHome}}\", \"title\": \"Home\", \"description\": \"Landing experience\" },\n    { \"route\": \"{{routeAbout}}\", \"title\": \"About\", \"description\": \"Company and values\" },\n    { \"route\": \"{{routeServices}}\", \"title\": \"Services\", \"description\": \"Service offerings\" },\n    { \"route\": \"{{routeBooking}}\", \"title\": \"Booking\", \"description\": \"Appointment and consultation\" },\n    { \"route\": \"{{routeContact}}\", \"title\": \"Contact\", \"description\": \"Contact channels and lead form\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{apiBase}}/core/designs", "host": ["{{apiBase}}"], "path": ["core", "designs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4) Seed Rich Components",
+      "description": "Populate each page with structured content components (header/hero/layout/content/footer).",
+      "item": [
+        {
+          "name": "Home - Header",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"header\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"theme\": \"light\",\n    \"links\": [\n      { \"href\": \"{{routeHome}}\", \"label\": \"Home\" },\n      { \"href\": \"{{routeAbout}}\", \"label\": \"About\" },\n      { \"href\": \"{{routeServices}}\", \"label\": \"Services\" },\n      { \"href\": \"{{routeBooking}}\", \"label\": \"Booking\" },\n      { \"href\": \"{{routeContact}}\", \"label\": \"Contact\" }\n    ],\n    \"button\": { \"text\": \"Get Started\", \"href\": \"{{routeBooking}}\", \"variant\": \"primary\" }\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Home - Hero",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"Modern CMS powered platform with modular architecture\",\n    \"align\": \"center\",\n    \"theme\": \"primary\",\n    \"spacing\": \"xl\",\n    \"buttons\": [\n      { \"text\": \"Book Consultation\", \"href\": \"{{routeBooking}}\", \"variant\": \"primary\", \"size\": \"lg\" },\n      { \"text\": \"Explore Services\", \"href\": \"{{routeServices}}\", \"variant\": \"outline\", \"size\": \"lg\" }\n    ],\n    \"images\": [\n      { \"url\": \"https://images.unsplash.com/photo-1551434678-e076c223a692\", \"alt\": \"Team collaboration\" }\n    ]\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Home - Footer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"footer\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 99,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"copyright\": \"2026 {{projectName}}. All rights reserved.\",\n    \"theme\": \"dark\",\n    \"footerLinks\": {\n      \"Privacy\": \"/privacy\",\n      \"Terms\": \"/terms\",\n      \"Support\": \"{{routeContact}}\"\n    }\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "About - About Block",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{routeAbout}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"About {{projectName}}\",\n    \"description\": \"We build production-grade digital systems with performance, security, and maintainability at the core.\",\n    \"align\": \"left\",\n    \"theme\": \"light\",\n    \"button\": { \"text\": \"Contact Team\", \"href\": \"{{routeContact}}\", \"variant\": \"secondary\" }\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Services - Grid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"grid\",\n  \"pageRoute\": \"{{routeServices}}\",\n  \"order\": 1,\n  \"props\": {\n    \"columns\": 3,\n    \"gap\": \"lg\",\n    \"theme\": \"light\"\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Booking - Container",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"container\",\n  \"pageRoute\": \"{{routeBooking}}\",\n  \"order\": 1,\n  \"props\": {\n    \"maxWidth\": \"xl\",\n    \"padding\": \"lg\",\n    \"theme\": \"light\"\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Booking - Modal CTA",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"modal\",\n  \"pageRoute\": \"{{routeBooking}}\",\n  \"order\": 2,\n  \"props\": {\n    \"id\": \"bookingModal\",\n    \"title\": \"Book a consultation\",\n    \"content\": \"Submit your details and our team will contact you.\",\n    \"openButtonText\": \"Open booking form\",\n    \"submitButtonText\": \"Request call\",\n    \"fields\": [\n      { \"name\": \"fullName\", \"label\": \"Full name\", \"type\": \"text\", \"required\": true },\n      { \"name\": \"email\", \"label\": \"Email\", \"type\": \"email\", \"required\": true },\n      { \"name\": \"message\", \"label\": \"Project brief\", \"type\": \"textarea\", \"required\": true }\n    ],\n    \"api\": {\n      \"type\": \"custom-action\",\n      \"url\": \"https://httpbin.org/post\",\n      \"method\": \"POST\",\n      \"bodyType\": \"json\"\n    }\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        },
+        {
+          "name": "Contact - About Summary",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "x-project-id", "value": "{{projectName}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"about\",\n  \"pageRoute\": \"{{routeContact}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"Talk to our team\",\n    \"description\": \"Reach us for architecture consulting, migration planning, and production support.\",\n    \"align\": \"center\",\n    \"theme\": \"secondary\",\n    \"button\": { \"text\": \"Email us\", \"href\": \"mailto:team@example.com\", \"variant\": \"primary\" }\n  }\n}" },
+            "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5) Verification",
+      "description": "Validate seeded structure is available through read APIs.",
+      "item": [
+        {
+          "name": "GET /core/designs/:name",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{apiBase}}/core/designs/{{projectName}}", "host": ["{{apiBase}}"], "path": ["core", "designs", "{{projectName}}"] }
+          }
+        },
+        {
+          "name": "GET /core/components?pageRoute=/",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2F",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/" }]
+            }
+          }
+        },
+        {
+          "name": "GET /core/components?pageRoute=/about",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2Fabout",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/about" }]
+            }
+          }
+        },
+        {
+          "name": "GET /core/components?pageRoute=/services",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2Fservices",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/services" }]
+            }
+          }
+        },
+        {
+          "name": "GET /core/components?pageRoute=/booking",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2Fbooking",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/booking" }]
+            }
+          }
+        },
+        {
+          "name": "GET /core/components?pageRoute=/contact",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-project-id", "value": "{{projectName}}" }],
+            "url": {
+              "raw": "{{apiBase}}/core/components?pageRoute=%2Fcontact",
+              "host": ["{{apiBase}}"],
+              "path": ["core", "components"],
+              "query": [{ "key": "pageRoute", "value": "/contact" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -216,11 +216,24 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
   _generateGlobalsCss(design, projectPath) {
     const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
     const cssContent = "@import \"tailwindcss\";\n" +
-      "@source \"../node_modules/@cms-builder/core/src/**/*.{js,ts,jsx,tsx,mdx}\";\n" +
-      "@source \"../node_modules/@cms-builder/core/dist/**/*.{js,ts,jsx,tsx,mjs}\";\n" +
+      "@source \"../**/*.{ts,tsx,js,jsx,mdx}\";\n" +
+      "@source \"../../node_modules/@cms-builder/core/dist/**/*.{js,mjs,cjs}\";\n" +
+      "@source \"../../node_modules/@cms-builder/core/src/**/*.{ts,tsx,js,jsx}\";\n" +
       "\n@theme {\n" +
       "  --color-primary: var(--primary-color);\n" +
       "  --color-secondary: var(--secondary-color);\n" +
+      "}\n\n" +
+      "@layer base {\n" +
+      "  :root {\n" +
+      "    --primary-color: #3b82f6;\n" +
+      "    --secondary-color: #1f2937;\n" +
+      "  }\n" +
+      "}\n\n" +
+      "html,\n" +
+      "body {\n" +
+      "  height: 100%;\n" +
+      "  margin: 0;\n" +
+      "  padding: 0;\n" +
       "}\n";
     fs.writeFileSync(cssPath, cssContent);
   }

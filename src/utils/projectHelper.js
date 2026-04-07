@@ -99,7 +99,7 @@ export default nextConfig;
 
     // 3. Setup .env.local
     const envPath = path.join(projectPath, '.env.local');
-    const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://202.179.6.77:4000/api`;
+    const envContent = `NEXT_PUBLIC_PROJECT_NAME=${projectName}\nNEXT_PUBLIC_CMS_API_URL=http://202.179.6.77:4000/api/v2`;
     fs.writeFileSync(envPath, envContent);
 
     // Ensure lockfile does not keep stale framework versions from template copy.
