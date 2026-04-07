@@ -4,11 +4,13 @@
 - Only modular API is exposed.
 - Base endpoint `/api` returns API metadata.
 - Feature endpoints are under `/api/v2/*`.
+- Responses use unified envelope: `{ version, data }`.
 
 ## Request Context Rules
 - `x-project-id` (or `projectId` query/body fallback) identifies tenant/project.
 - `x-module` or mounted route sets module context.
 - Module endpoints reject requests missing required context.
+- Protected routes require `Authorization: Bearer <accessToken>`.
 
 ## Core/Shared/Modules
 - Core: `src/core/auth`, `src/core/users`, `src/core/permissions`
@@ -22,9 +24,18 @@
 - Server registry: `src/modules/infrastructure/servers`
 - Domain binding: `src/modules/infrastructure/domains`
 - Nginx config generation: `src/shared/infra/nginxConfigManager`
-- Remote execution abstraction: `src/shared/infra/remoteExecutor`
+- Remote execution over SSH: `src/shared/infra/remoteExecutor`
 
 ## Database Isolation
 - Control plane uses default mongoose connection.
 - Project metadata stores `dbUri` + `dbName` and readiness status.
 - `src/shared/db/projectConnectionRegistry` provides per-project lazy connections.
+
+## Auth Hardening
+- Access + refresh JWT token flow with rotation/revocation.
+- Auth endpoints:
+  - `/api/v2/core/auth/login`
+  - `/api/v2/core/auth/refresh`
+  - `/api/v2/core/auth/logout`
+  - `/api/v2/core/auth/me`
+- Refresh token sessions stored in `AuthSession` model.
