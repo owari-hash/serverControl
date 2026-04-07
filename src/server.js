@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const config = require('../config');
 const app = require('./app');
 const projectService = require('./services/projectService');
+const projectConnectionRegistry = require('./shared/db/projectConnectionRegistry');
 
 const startServer = async () => {
   try {
@@ -33,6 +34,11 @@ process.on('unhandledRejection', (err) => {
   console.log('UNHANDLED REJECTION! 💥 Shutting down...');
   console.log(err.name, err.message);
   process.exit(1);
+});
+
+process.on('SIGINT', async () => {
+  await projectConnectionRegistry.closeAll();
+  process.exit(0);
 });
 
 startServer();

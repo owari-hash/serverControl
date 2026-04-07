@@ -32,6 +32,9 @@ class ProjectService {
       this.runningProjects.set(project.name, {
         port: project.port,
         path: project.path,
+        dbUri: project.dbUri,
+        dbName: project.dbName,
+        dbStatus: project.dbStatus,
         createdAt: project.createdAt,
         githubRepo: project.githubRepo,
         pid: project.pid,
@@ -76,6 +79,10 @@ class ProjectService {
       name: sanitizedName,
       port,
       path: projectPath,
+      dbUri: config.MONGODB_URI,
+      dbName: `project_${sanitizedName}`,
+      dbStatus: 'READY',
+      dbUpdatedAt: new Date(),
       githubRepo,
       status: 'STOPPED'
     });
@@ -84,6 +91,9 @@ class ProjectService {
     this.runningProjects.set(sanitizedName, {
       port,
       path: projectPath,
+      dbUri: config.MONGODB_URI,
+      dbName: `project_${sanitizedName}`,
+      dbStatus: 'READY',
       githubRepo,
       status: 'STOPPED',
       createdAt: project.createdAt

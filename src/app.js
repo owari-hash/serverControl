@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const routes = require("./routes");
+const apiRoutes = require("./api");
 const config = require("../config");
 
 const app = express();
@@ -31,7 +31,7 @@ app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
 // Main API Routes
-app.use("/api", routes);
+app.use("/api", apiRoutes);
 
 // 404 Handler
 app.use((req, res) => {
