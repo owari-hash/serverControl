@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { fail } = require('../http/response');
 
 const MODULE_HEADER = 'x-module';
 const PROJECT_HEADER = 'x-project-id';
@@ -42,10 +43,9 @@ function requestContext(req, res, next) {
 
 function requireProjectContext(req, res, next) {
   if (!req.context || !req.context.projectId) {
-    return res.status(400).json({
-      success: false,
-      error: 'projectId is required (header x-project-id, query, or body)'
-    });
+    return res.status(400).json(
+      fail('projectId is required (header x-project-id, query, or body)')
+    );
   }
   return next();
 }
@@ -53,16 +53,12 @@ function requireProjectContext(req, res, next) {
 function requireModuleContext(req, res, next) {
   const moduleName = req.context && req.context.module;
   if (!moduleName) {
-    return res.status(400).json({
-      success: false,
-      error: 'module context is required (header x-module or route param)'
-    });
+    return res.status(400).json(
+      fail('module context is required (header x-module or route param)')
+    );
   }
   if (!allowedModules.has(moduleName)) {
-    return res.status(400).json({
-      success: false,
-      error: `unsupported module '${moduleName}'`
-    });
+    return res.status(400).json(fail(`unsupported module '${moduleName}'`));
   }
   return next();
 }
