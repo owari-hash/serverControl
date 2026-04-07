@@ -56,7 +56,7 @@ async function refreshTokens(refreshToken) {
   session.isRevoked = true;
   await session.save();
 
-  return issueTokens({ email: payload.sub, role: payload.role || 'admin' });
+  return issueTokens({ email: payload.sub, role: payload.role || 'client-admin' });
 }
 
 async function revokeRefreshToken(refreshToken) {

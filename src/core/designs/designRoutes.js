@@ -2,6 +2,8 @@ const express = require('express');
 const designService = require('./designService');
 const { ok, fail } = require('../../shared/http/response');
 const { requireAuth } = require('../../shared/middleware/requireAuth');
+const { requireProjectAccess } = require('../../shared/middleware/requireProjectAccess');
+const { auditLog } = require('../../shared/logging/auditLog');
 
 const router = express.Router();
 
@@ -24,31 +26,34 @@ router.get('/:name', async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireProjectAccess('client-admin', 'editor'), async (req, res) => {
   try {
     const { projectName } = req.body || {};
     if (!projectName) {
       return res.status(400).json(fail('projectName is required'));
     }
     const design = await designService.createOrUpdateDesign(projectName, req.body || {});
+    auditLog(req, 'design.upsert', { projectName });
     res.status(201).json(ok({ success: true, design }));
   } catch (error) {
     res.status(400).json(fail(error.message));
   }
 });
 
-router.patch('/:name', requireAuth, async (req, res) => {
+router.patch('/:name', requireAuth, requireProjectAccess('client-admin', 'editor'), async (req, res) => {
   try {
     const design = await designService.createOrUpdateDesign(req.params.name, req.body || {});
+    auditLog(req, 'design.patch', { projectName: req.params.name });
     res.json(ok({ success: true, design }));
   } catch (error) {
     res.status(400).json(fail(error.message));
   }
 });
 
-router.delete('/:name', requireAuth, async (req, res) => {
+router.delete('/:name', requireAuth, requireProjectAccess('client-admin'), async (req, res) => {
   try {
     await designService.deleteDesign(req.params.name);
+    auditLog(req, 'design.delete', { projectName: req.params.name });
     res.json(ok({ success: true, message: `Design ${req.params.name} deleted` }));
   } catch (error) {
     const status = error.message === 'Design not found for this project' ? 404 : 500;

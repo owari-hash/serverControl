@@ -1,11 +1,21 @@
 const { spawn } = require('child_process');
 const projectService = require('../../services/projectService');
 const { ok, fail } = require('../../shared/http/response');
+const UserProjectBinding = require('../../models/UserProjectBinding');
+const { auditLog } = require('../../shared/logging/auditLog');
 
 class ProjectController {
   async getAllProjects(req, res) {
     try {
-      const projects = await projectService.getAllProjects();
+      let projects = await projectService.getAllProjects();
+      if (req.auth.role !== 'superadmin') {
+        const bindings = await UserProjectBinding.find({
+          userEmail: req.auth.email,
+          status: 'ACTIVE'
+        }).lean();
+        const allowed = new Set(bindings.map((b) => b.projectName));
+        projects = projects.filter((p) => allowed.has(p.name));
+      }
       res.json(ok({ success: true, projects }));
     } catch (error) {
       res.status(500).json(fail(error.message));
@@ -30,6 +40,7 @@ class ProjectController {
       }
 
       const project = await projectService.createNewProject(name);
+      auditLog(req, 'project.create', { projectName: project.name });
       return res.status(201).json(ok({
         success: true,
         project,
@@ -43,6 +54,7 @@ class ProjectController {
   async updateProject(req, res) {
     try {
       const project = await projectService.updateProject(req.params.name, req.body || {});
+      auditLog(req, 'project.update', { projectName: req.params.name });
       res.json(ok({ success: true, project }));
     } catch (error) {
       const status = error.message === 'Project not found' ? 404 : 500;
@@ -53,6 +65,7 @@ class ProjectController {
   async deleteProject(req, res) {
     try {
       await projectService.deleteProject(req.params.name);
+      auditLog(req, 'project.delete', { projectName: req.params.name });
       res.json(ok({ success: true, message: `Project ${req.params.name} deleted` }));
     } catch (error) {
       const status = error.message === 'Project not found' ? 404 : 500;
@@ -63,6 +76,7 @@ class ProjectController {
   async stopProject(req, res) {
     try {
       await projectService.stopProject(req.params.name);
+      auditLog(req, 'project.stop', { projectName: req.params.name });
       res.json(ok({ success: true, message: `Project ${req.params.name} stopped` }));
     } catch (error) {
       res.status(500).json(fail(error.message));
@@ -72,6 +86,7 @@ class ProjectController {
   async buildProject(req, res) {
     try {
       const result = await projectService.syncAndBuild(req.params.name);
+      auditLog(req, 'project.build', { projectName: req.params.name });
       res.json(ok({ success: true, ...result }));
     } catch (error) {
       res.status(500).json(fail(error.message, { output: error.output }));
@@ -86,6 +101,7 @@ class ProjectController {
       }
 
       const project = await projectService.createNewSite(projectName);
+      auditLog(req, 'project.generate', { projectName: project.name });
       res.json(ok({
         success: true,
         project,

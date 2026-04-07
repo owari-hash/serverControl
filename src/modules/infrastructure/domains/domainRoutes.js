@@ -1,10 +1,12 @@
 const express = require('express');
 const service = require('./domainService');
 const { ok, fail } = require('../../../shared/http/response');
+const { requireProjectAccess } = require('../../../shared/middleware/requireProjectAccess');
+const { auditLog } = require('../../../shared/logging/auditLog');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', requireProjectAccess('client-admin', 'editor'), async (req, res) => {
   try {
     const domains = await service.listDomains(req.context.projectId);
     res.json(ok({ success: true, domains }));
@@ -13,7 +15,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/bind', async (req, res) => {
+router.post('/bind', requireProjectAccess('client-admin'), async (req, res) => {
   try {
     const payload = {
       projectId: req.context.projectId,
@@ -22,18 +24,20 @@ router.post('/bind', async (req, res) => {
       upstreamPort: req.body && req.body.upstreamPort
     };
     const domain = await service.bindDomain(payload);
+    auditLog(req, 'infra.domain.bind', { domain: payload.domain, projectName: payload.projectId });
     res.status(201).json(ok({ success: true, domain }));
   } catch (error) {
     res.status(400).json(fail(error.message));
   }
 });
 
-router.patch('/:domain/enabled', async (req, res) => {
+router.patch('/:domain/enabled', requireProjectAccess('client-admin'), async (req, res) => {
   try {
     const updated = await service.setDomainEnabled(
       req.params.domain,
       Boolean(req.body && req.body.isEnabled)
     );
+    auditLog(req, 'infra.domain.toggle', { domain: req.params.domain, projectName: req.context.projectId });
     res.json(ok({ success: true, domain: updated }));
   } catch (error) {
     res.status(400).json(fail(error.message));
