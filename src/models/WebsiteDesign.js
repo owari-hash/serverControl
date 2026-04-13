@@ -14,6 +14,8 @@ const WebsiteDesignSchema = new mongoose.Schema({
     secondaryColor: { type: String, default: '#1f2937' },
     fontFamily: { type: String, default: 'Inter' },
     darkMode: { type: Boolean, default: false },
+    /** Main page canvas background (CSS color); optional */
+    pageBackground: { type: String, default: '' },
     customTokens: { type: Map, of: String, default: {} }
   },
   // Keep lightweight page metadata for routing/title/description compatibility.

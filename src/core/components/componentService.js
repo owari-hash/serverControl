@@ -43,9 +43,49 @@ async function create(projectName, payload) {
 }
 
 async function update(projectName, instanceId, payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Invalid patch payload');
+  }
+
+  const { props: propsPatch, ...rest } = payload;
+  const $set = {
+    ...rest,
+    updatedAt: new Date()
+  };
+
+  if (propsPatch !== undefined) {
+    const existing = await ComponentInstance.findOne({ projectName, instanceId }).lean();
+    if (!existing) throw new Error('Component instance not found');
+
+    const prevRaw = existing.props;
+    const prev =
+      prevRaw && typeof prevRaw === 'object' && !Array.isArray(prevRaw) ? { ...prevRaw } : {};
+
+    if (propsPatch === null) {
+      $set.props = {};
+    } else if (typeof propsPatch === 'object' && !Array.isArray(propsPatch)) {
+      const merged = { ...prev, ...propsPatch };
+      const prevCanvas = prev._canvas;
+      const patchCanvas = propsPatch._canvas;
+      if (
+        prevCanvas &&
+        typeof prevCanvas === 'object' &&
+        !Array.isArray(prevCanvas) &&
+        patchCanvas &&
+        typeof patchCanvas === 'object' &&
+        !Array.isArray(patchCanvas)
+      ) {
+        merged._canvas = { ...prevCanvas, ...patchCanvas };
+      }
+      $set.props = merged;
+    } else {
+      throw new Error('props must be an object or null');
+    }
+  }
+
   const instance = await ComponentInstance.findOneAndUpdate(
     { projectName, instanceId },
-    { $set: { ...payload, updatedAt: new Date() } },
+    { $set },
     { new: true }
   );
   if (!instance) throw new Error('Component instance not found');

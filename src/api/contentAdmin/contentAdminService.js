@@ -1,6 +1,6 @@
 const ComponentInstance = require("../../models/ComponentInstance");
 
-/** Allowed string keys merged into `props` (content-only, no layout/theme). */
+/** Allowed keys merged into `props` via POST .../text (strings + numeric fontSize). */
 const TEXT_FIELD_WHITELIST = new Set([
   "title",
   "subtitle",
@@ -19,6 +19,16 @@ const TEXT_FIELD_WHITELIST = new Set([
   "loadingText",
   "agentName",
   "offlineMessage",
+  "textColor",
+  "backgroundColor",
+  "borderColor",
+  "accentColor",
+  "className",
+  "variant",
+  "theme",
+  "align",
+  "spacing",
+  "fontSize",
 ]);
 
 function normalizeImageEntry(raw) {
@@ -53,6 +63,14 @@ async function mergeTextProps(projectName, instanceId, fields) {
   for (const [key, value] of Object.entries(fields || {})) {
     if (!TEXT_FIELD_WHITELIST.has(key)) continue;
     if (value === undefined || value === null) continue;
+    if (key === "fontSize") {
+      const n = typeof value === "number" ? value : Number.parseFloat(String(value));
+      if (!Number.isFinite(n)) {
+        throw new Error(`Field "${key}" must be a finite number`);
+      }
+      props[key] = n;
+      continue;
+    }
     if (typeof value !== "string") {
       throw new Error(`Field "${key}" must be a string`);
     }
