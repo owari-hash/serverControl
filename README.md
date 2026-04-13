@@ -47,6 +47,7 @@ Base:
 - `/api/v2/core/projects`
 - `/api/v2/core/designs`
 - `/api/v2/core/components`
+- `/api/v2/content-admin` (editor/client-admin content: list blocks, text + image URLs — see `src/api/contentAdmin/CONTENT_ADMIN_API.md`)
 - `/api/v2/core/users`
 - `/api/v2/core/permissions`
   Module endpoints:

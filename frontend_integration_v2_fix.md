@@ -34,6 +34,8 @@ This document replaces assumptions in `frontend_integration.md` and aligns with 
 - `pagination`
 - `button`
 - `modal`
+- `chatbot`
+- `livechat`
 
 ---
 
@@ -220,6 +222,57 @@ Child in `items` slot:
   "props": {
     "title": "Updated headline",
     "subtitle": "Updated subtext"
+  }
+}
+```
+
+## 7.4 Create Chatbot (UI-only)
+
+```json
+{
+  "instanceId": "chatbot-global",
+  "componentType": "chatbot",
+  "pageRoute": "/",
+  "order": 900,
+  "props": {
+    "title": "AI Assistant",
+    "welcomeMessage": "Hi! I can help you navigate this site.",
+    "placeholder": "Ask me anything...",
+    "launcherLabel": "Chat",
+    "position": "bottom-right",
+    "theme": "primary",
+    "defaultOpen": false,
+    "showTimestamp": true,
+    "quickReplies": ["Pricing", "Contact support", "Book demo"],
+    "botReplies": [
+      "Great question. You can find details in our Services page.",
+      "Our team can help. Please share a bit more context."
+    ]
+  }
+}
+```
+
+## 7.5 Create Livechat (UI-only)
+
+```json
+{
+  "instanceId": "livechat-global",
+  "componentType": "livechat",
+  "pageRoute": "/",
+  "order": 901,
+  "props": {
+    "title": "Live Support",
+    "subtitle": "Average response: 3 min",
+    "agentName": "Support Team",
+    "agentStatus": "online",
+    "welcomeMessage": "Hello! An agent is ready to help.",
+    "placeholder": "Type your message...",
+    "launcherLabel": "Live Chat",
+    "position": "bottom-right",
+    "theme": "secondary",
+    "defaultOpen": false,
+    "showTimestamp": true,
+    "offlineMessage": "We are currently offline. Leave a message and we will reply soon."
   }
 }
 ```
