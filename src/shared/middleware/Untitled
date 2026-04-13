@@ -1,0 +1,292 @@
+lientAdmin API Guide (v2)
+Base URL:
+
+http://<host>:4000/api/v2
+Response envelope:
+
+all responses are wrapped:
+{
+"version": "2.0.0",
+"data": { ... }
+}
+Auth headers:
+
+Protected endpoints require:
+Authorization: Bearer <accessToken>
+Project-scoped endpoints also require:
+x-project-id: <projectName>
+
+1. Authentication
+   POST /core/auth/login
+   Login and get access/refresh tokens.
+
+Body
+
+{
+"email": "client-admin@example.com",
+"password": "clientAdminPass123"
+}
+Success (data)
+
+{
+"success": true,
+"user": {
+"email": "client-admin@example.com",
+"role": "client-admin",
+"projects": [
+{
+"projectName": "nihao1",
+"roles": ["client-admin", "editor"]
+}
+]
+},
+"accessToken": "<jwt>",
+"refreshToken": "<jwt>",
+"tokenType": "Bearer",
+"expiresIn": "15m"
+}
+POST /core/auth/refresh
+Get new access token (and rotated refresh token).
+
+Body
+
+{
+"refreshToken": "<refreshToken>"
+}
+POST /core/auth/logout
+Revoke current refresh token.
+
+Body
+
+{
+"refreshToken": "<refreshToken>"
+}
+GET /core/auth/me
+Get current authenticated user + project bindings.
+
+Headers
+
+Authorization: Bearer <accessToken> 2) Project Access (ClientAdmin)
+GET /core/projects
+List projects visible to this user (filtered by bindings).
+
+Headers
+
+Authorization: Bearer <accessToken>
+Notes
+
+client-admin/editor: only bound projects
+superadmin: all projects
+GET /core/projects/:name
+Get one project details (must be bound or superadmin).
+
+Headers
+
+Authorization: Bearer <accessToken>
+POST /core/projects/:name/build
+Trigger build/publish pipeline.
+
+Headers
+
+Authorization: Bearer <accessToken>
+Access
+
+client-admin (bound project) or superadmin
+POST /core/projects/:name/stop
+Stop project runtime.
+
+Headers
+
+Authorization: Bearer <accessToken>
+Access
+
+client-admin (bound project) or superadmin 3) Design CRUD
+GET /core/designs/:name
+Public read for design content by project name.
+
+POST /core/designs
+Create/update design (upsert).
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName> (recommended for consistency)
+Body
+
+{
+"projectName": "nihao1",
+"domain": "nihao1.local",
+"theme": {
+"primaryColor": "#2563eb",
+"secondaryColor": "#0f172a",
+"fontFamily": "Inter",
+"darkMode": false,
+"customTokens": {
+"heroBackground": "linear-gradient(135deg,#0f172a,#1e3a8a)"
+}
+},
+"pages": [
+{ "route": "/", "title": "Home", "description": "Landing page" },
+{ "route": "/about", "title": "About", "description": "About page" },
+{ "route": "/services", "title": "Services", "description": "Services page" },
+{ "route": "/blog", "title": "Blog", "description": "Blog page" },
+{ "route": "/contact", "title": "Contact", "description": "Contact page" }
+]
+}
+PATCH /core/designs/:name
+Partial update design.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Body example
+
+{
+"theme": {
+"primaryColor": "#10b981",
+"secondaryColor": "#111827",
+"fontFamily": "Inter",
+"darkMode": false
+}
+}
+DELETE /core/designs/:name
+Delete design.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Access
+
+client-admin or superadmin 4) Components CRUD (Content Inside Components)
+GET /core/components?pageRoute=/about
+List component instances by route.
+
+Headers
+
+x-project-id: <projectName>
+GET /core/components/tree?pageRoute=/about
+Get tree structure for nested components.
+
+Headers
+
+x-project-id: <projectName>
+POST /core/components
+Create component instance.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Content-Type: application/json
+Body
+
+{
+"componentType": "hero",
+"pageRoute": "/",
+"order": 0,
+"props": {
+"title": "Welcome to nihao1",
+"subtitle": "Production-ready CMS",
+"align": "center",
+"theme": "primary",
+"spacing": "xl",
+"buttons": [
+{ "text": "Book Demo", "href": "/contact", "variant": "primary", "size": "lg" }
+]
+}
+}
+PATCH /core/components/:instanceId
+Update component props/content.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Body
+
+{
+"props": {
+"title": "Updated headline",
+"subtitle": "Updated subtext"
+}
+}
+DELETE /core/components/:instanceId
+Delete component instance.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+POST /core/components/reorder
+Reorder components in bulk.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Content-Type: application/json
+Body
+
+{
+"instances": [
+{ "instanceId": "uuid-1", "order": 0 },
+{ "instanceId": "uuid-2", "order": 1 }
+]
+} 5) Domain Management (ClientAdmin Scope)
+GET /infrastructure/domains
+List bound domains for active project.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+POST /infrastructure/domains/bind
+Bind domain to project runtime.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Content-Type: application/json
+Body
+
+{
+"domain": "nihao1.local",
+"upstreamHost": "202.179.6.77",
+"upstreamPort": 5003
+}
+PATCH /infrastructure/domains/:domain/enabled
+Enable/disable domain mapping.
+
+Headers
+
+Authorization: Bearer <accessToken>
+x-project-id: <projectName>
+Content-Type: application/json
+Body
+
+{
+"isEnabled": true
+} 6) Superadmin-only (Not for ClientAdmin UI)
+These should not be exposed in regular client-admin UI:
+
+POST /core/projects
+DELETE /core/projects/:name
+POST /core/projects/generate
+GET/POST /core/users
+GET/POST/DELETE /core/users/:email/bindings\*
+GET/POST /infrastructure/servers
+POST /infrastructure/servers/:id/exec 7) Common Error Cases
+Insufficient role permissions
+Role does not match endpoint policy (e.g. client-admin calling superadmin route).
+
+No access to requested project
+User is not bound to x-project-id or route project name.
+
+projectId is required
+Missing x-project-id on project-scoped endpoints.
+
+Refresh token revoked
+Need to login again and store fresh tokens.
