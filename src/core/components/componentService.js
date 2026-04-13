@@ -71,11 +71,50 @@ async function reorder(projectName, instances) {
   await ComponentInstance.bulkWrite(bulkOps);
 }
 
+const CANVAS_NUM_KEYS = ['x', 'y', 'w', 'h', 'z'];
+
+/**
+ * Deep-merge `props._canvas` without replacing the rest of `props` (avoids clobbering concurrent edits).
+ */
+async function patchCanvasLayout(projectName, instanceId, patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw new Error('canvas layout patch must be a plain object');
+  }
+  const existing = await ComponentInstance.findOne({ projectName, instanceId }).lean();
+  if (!existing) throw new Error('Component instance not found');
+
+  const props = existing.props && typeof existing.props === 'object' ? existing.props : {};
+  const prevCanvas = props._canvas && typeof props._canvas === 'object' ? { ...props._canvas } : {};
+  const nextCanvas = { ...prevCanvas };
+
+  for (const key of CANVAS_NUM_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(patch, key)) {
+      const v = patch[key];
+      if (v === null || v === undefined) {
+        delete nextCanvas[key];
+      } else if (typeof v === 'number' && Number.isFinite(v)) {
+        nextCanvas[key] = v;
+      } else {
+        throw new Error(`canvas layout "${key}" must be a finite number or null`);
+      }
+    }
+  }
+
+  const instance = await ComponentInstance.findOneAndUpdate(
+    { projectName, instanceId },
+    { $set: { 'props._canvas': nextCanvas, updatedAt: new Date() } },
+    { new: true }
+  );
+  if (!instance) throw new Error('Component instance not found');
+  return instance;
+}
+
 module.exports = {
   list,
   tree,
   create,
   update,
   remove,
-  reorder
+  reorder,
+  patchCanvasLayout
 };

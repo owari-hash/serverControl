@@ -17,14 +17,24 @@ const allowAnyOrigin = configuredOrigins.includes("*");
 
 const corsOptions = {
   origin(origin, callback) {
-    // Server-side permissive CORS to avoid frontend auth blocking.
+    // Reflect requesting origin when credentials are used (cannot use * with credentials).
     if (!origin || allowAnyOrigin) return callback(null, true);
     if (configuredOrigins.includes(origin)) return callback(null, true);
     return callback(null, true);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  // Browsers preflight custom headers; x-project-id is required for /content-admin and /core/components.
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Accept-Language",
+    "x-project-id",
+    "X-Project-Id",
+  ],
   credentials: true,
+  maxAge: 86400,
 };
 
 app.use(cors(corsOptions));

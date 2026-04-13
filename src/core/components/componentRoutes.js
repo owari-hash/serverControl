@@ -56,6 +56,22 @@ router.patch('/:instanceId', requireAuth, requireProjectAccess('client-admin', '
   }
 });
 
+/** Merge into `props._canvas` only (x, y, w, h, z); does not replace other props keys. */
+router.patch('/:instanceId/canvas-layout', requireAuth, requireProjectAccess('client-admin', 'editor'), async (req, res) => {
+  try {
+    const component = await componentService.patchCanvasLayout(
+      req.context.projectId,
+      req.params.instanceId,
+      req.body || {}
+    );
+    auditLog(req, 'component.canvas-layout', { projectName: req.context.projectId, instanceId: req.params.instanceId });
+    res.json(ok({ success: true, component }));
+  } catch (error) {
+    const status = error.message === 'Component instance not found' ? 404 : 400;
+    res.status(status).json(fail(error.message));
+  }
+});
+
 router.delete('/:instanceId', requireAuth, requireProjectAccess('client-admin'), async (req, res) => {
   try {
     await componentService.remove(req.context.projectId, req.params.instanceId);
