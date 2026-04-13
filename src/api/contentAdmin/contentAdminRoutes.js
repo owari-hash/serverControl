@@ -3,8 +3,17 @@ const { ok, fail } = require("../../shared/http/response");
 const { auditLog } = require("../../shared/logging/auditLog");
 const componentService = require("../../core/components/componentService");
 const contentAdminService = require("./contentAdminService");
+const { listComponentTypes } = require("../../core/components/allowedComponentTypes");
 
 const router = express.Router();
+
+/**
+ * GET /component-types
+ * Types supported by the current @cms-builder/core registry (for forms / validation UX).
+ */
+router.get("/component-types", (req, res) => {
+  res.json(ok({ success: true, components: listComponentTypes() }));
+});
 
 /**
  * GET /blocks?pageRoute=...

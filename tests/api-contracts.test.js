@@ -23,3 +23,18 @@ test('component payload validator accepts valid minimal payload', () => {
   });
   assert.equal(valid.valid, true);
 });
+
+test('strict mode rejects unknown componentType', () => {
+  process.env.STRICT_COMPONENT_TYPES = 'true';
+  try {
+    const bad = validateComponentPayload({
+      componentType: 'not-a-real-type',
+      pageRoute: '/',
+      order: 0
+    });
+    assert.equal(bad.valid, false);
+    assert.ok(bad.errors.some((e) => e.includes('not in the allowed list')));
+  } finally {
+    delete process.env.STRICT_COMPONENT_TYPES;
+  }
+});

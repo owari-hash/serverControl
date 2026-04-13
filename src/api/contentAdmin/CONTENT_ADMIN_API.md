@@ -23,7 +23,19 @@ All successful responses use the usual v2 envelope:
 
 ---
 
-## 1) Read blocks (find `instanceId`)
+## 1) List framework component types
+
+### `GET /api/v2/content-admin/component-types`
+
+**Headers:** `Authorization`, `x-project-id`
+
+**Body:** none
+
+**Response:** `data.components` — array of `{ "type": "hero", "category": "section" }` aligned with `@cms-builder/core` / `allowedComponentTypes.js`. Use this to populate type pickers in an admin UI. Creating instances still uses `componentType` as a string; the DB does not enforce this list unless `STRICT_COMPONENT_TYPES` is set on the server.
+
+---
+
+## 2) Read blocks (find `instanceId`)
 
 Every component instance in the database has an **`instanceId`** (string, unique per project). It is created when that block is first saved (often a UUID). The content-admin **GET** responses include it on **each** item or tree node — your UI reads `instanceId` from there and passes it into **`POST .../blocks/:instanceId/...`**. Nothing guesses it client-side; you always resolve it from a prior list/tree fetch (or from your own seed data if you control IDs).
 
@@ -57,7 +69,7 @@ Every component instance in the database has an **`instanceId`** (string, unique
 
 ---
 
-## 2) Update text (`props` string fields only)
+## 3) Update text (`props` string fields only)
 
 ### `POST /api/v2/content-admin/blocks/:instanceId/text`
 
@@ -91,7 +103,7 @@ Merges allowed keys into existing `props`. Other `props` keys are left unchanged
 
 ---
 
-## 3) Update images (URLs only, no upload)
+## 4) Update images (URLs only, no upload)
 
 ### `POST /api/v2/content-admin/blocks/:instanceId/images`
 
@@ -125,7 +137,7 @@ Writes to **`props.images`**. Does not touch other `props`.
 
 ---
 
-## 4) Update media (image URLs via `items`)
+## 5) Update media (image URLs via `items`)
 
 ### `POST /api/v2/content-admin/blocks/:instanceId/media`
 
@@ -151,7 +163,7 @@ Same storage as **`props.images`** for items with `"kind": "image"`. Other kinds
 
 ---
 
-## 5) What this API does not do
+## 6) What this API does not do
 
 - No multipart file upload — host files elsewhere, pass **HTTPS URLs**.
 - No editing **`links`**, **`buttons`**, **`theme`**, **`align`**, **`spacing`**, or other non-whitelisted `props` via the text route (use a product-specific path or extend the whitelist in `contentAdminService.js` if you need that).
@@ -159,12 +171,13 @@ Same storage as **`props.images`** for items with `"kind": "image"`. Other kinds
 
 ---
 
-## 6) `@cms-builder/core` client
+## 7) `@cms-builder/core` client
 
 Base URL: `NEXT_PUBLIC_CMS_API_URL` → `.../api/v2`.
 
 | Server route | Client method |
 |--------------|----------------|
+| `GET .../content-admin/component-types` | `cmsApi.getContentAdminComponentTypes(projectName, bearerToken)` |
 | `GET .../content-admin/blocks` | `cmsApi.getContentAdminBlocks(projectName, bearerToken, pageRoute?)` |
 | `GET .../content-admin/blocks/tree` | `cmsApi.getContentAdminTree(projectName, pageRoute, bearerToken)` |
 | `POST .../text` | `cmsApi.postContentAdminText(projectName, instanceId, fields, bearerToken)` |
@@ -173,6 +186,6 @@ Base URL: `NEXT_PUBLIC_CMS_API_URL` → `.../api/v2`.
 
 ---
 
-## 7) Bearer token
+## 8) Bearer token
 
 Every `/content-admin` request needs a valid **Bearer** token for a user who has a **client-admin** or **editor** binding on the project. How you obtain that token depends on your deployment’s sign-in flow; it is not part of the content-admin route list in this document.
