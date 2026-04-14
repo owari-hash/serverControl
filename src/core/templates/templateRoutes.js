@@ -133,7 +133,7 @@ router.post('/:id/apply', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    await templateService.deleteTemplate(req.params.id);
+    await templateService.deleteTemplate(req.params.id, req.auth.email);
     res.json(ok({ success: true, message: 'Template deleted' }));
   } catch (error) {
     res.status(404).json(fail(error.message));

@@ -3,6 +3,17 @@ const ComponentInstance = require('../../models/ComponentInstance');
 const WebsiteDesign = require('../../models/WebsiteDesign');
 const AuditEvent = require('../../models/AuditEvent');
 
+async function recordAudit(action, actorEmail, targetId, metadata = {}) {
+  await AuditEvent.create({
+    action,
+    actorEmail,
+    actorRole: 'superadmin',
+    targetType: 'template',
+    targetId: String(targetId || ''),
+    metadata,
+  });
+}
+
 function toSlug(name) {
   return String(name || '')
     .trim()
@@ -38,6 +49,7 @@ async function createTemplate(payload, actorEmail = '') {
     createdBy: actorEmail,
     updatedBy: actorEmail,
   });
+  await recordAudit('template.create', actorEmail, next._id, { name: next.name });
   return next;
 }
 
@@ -55,6 +67,7 @@ async function updateTemplate(id, patch, actorEmail = '') {
     },
     { new: true },
   );
+  await recordAudit('template.update', actorEmail, id, { patchKeys: Object.keys(patch || {}) });
   return updated;
 }
 
@@ -85,9 +98,10 @@ async function rollbackTemplateVersion(id, version, actorEmail = '') {
   return updateTemplate(id, target.snapshot || {}, actorEmail);
 }
 
-async function deleteTemplate(id) {
+async function deleteTemplate(id, actorEmail = '') {
   const res = await Template.findByIdAndDelete(id);
   if (!res) throw new Error('Template not found');
+  await recordAudit('template.delete', actorEmail, id, { name: res.name });
 }
 
 async function applyTemplateToProject({ templateId, projectName, overwriteRoute = true, actorEmail = '' }) {

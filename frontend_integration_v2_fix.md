@@ -403,3 +403,40 @@ Current presets:
 - Render route with only global shell components and verify runtime fallback injects header/footer.
 - In dev mode, confirm console warnings for missing required props.
 - In dev mode, confirm unknown `token:*` references produce diagnostics warnings.
+
+---
+
+## 15) Superadmin Governance APIs (New)
+
+### Templates
+
+- `GET /api/v2/core/templates`
+- `POST /api/v2/core/templates`
+- `PATCH /api/v2/core/templates/:id`
+- `POST /api/v2/core/templates/:id/duplicate`
+- `POST /api/v2/core/templates/:id/activate`
+- `POST /api/v2/core/templates/:id/rollback`
+- `POST /api/v2/core/templates/:id/apply`
+- `GET /api/v2/core/templates/:id/export`
+- `POST /api/v2/core/templates/import`
+- `DELETE /api/v2/core/templates/:id`
+
+### Component Registry
+
+- `GET /api/v2/core/registry`
+- `PUT /api/v2/core/registry/:type`
+- `DELETE /api/v2/core/registry/:type`
+
+### Media Library
+
+- `GET /api/v2/core/media`
+- `POST /api/v2/core/media`
+- `DELETE /api/v2/core/media/:id`
+
+### Governance Analytics
+
+- `GET /api/v2/core/analytics/overview`
+
+All routes above are superadmin-protected and require:
+
+- `Authorization: Bearer <token>`

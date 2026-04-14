@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const ComponentInstance = require('../../models/ComponentInstance');
+const ComponentDefinition = require('../../models/ComponentDefinition');
 const { validateComponentPayload } = require('../../utils/apiContract');
 const { isAllowedComponentType } = require('./allowedComponentTypes');
 const { validateComponentGovernance } = require('../governance/validationRules');
@@ -88,6 +89,10 @@ async function create(projectName, payload) {
   if (!isAllowedComponentType(childType)) {
     throw new Error(`Unsupported component type: ${payload.componentType}`);
   }
+  const childDefinitionAny = await ComponentDefinition.findOne({ type: childType }).lean();
+  if (childDefinitionAny && childDefinitionAny.isActive === false) {
+    throw new Error(`Component type "${childType}" is disabled by registry governance`);
+  }
   const parentId = payload.parentId || null;
   if (parentId) {
     const parent = await ComponentInstance.findOne({ projectName, instanceId: parentId }).lean();
@@ -96,6 +101,11 @@ async function create(projectName, payload) {
       throw new Error('Parent must be on the same pageRoute');
     }
     validateSlotContract(normalizeType(parent.componentType), childType);
+    const parentDefinition = await ComponentDefinition.findOne({ type: normalizeType(parent.componentType), isActive: true }).lean();
+    const allowedChildren = Array.isArray(parentDefinition?.allowedChildren) ? parentDefinition.allowedChildren : [];
+    if (allowedChildren.length > 0 && !allowedChildren.includes(childType)) {
+      throw new Error(`Registry contract violation: "${parent.componentType}" cannot contain "${childType}"`);
+    }
   } else {
     validateSlotContract(null, childType);
   }
@@ -136,6 +146,10 @@ async function update(projectName, instanceId, payload) {
   if (Object.prototype.hasOwnProperty.call(rest, 'componentType')) {
     const nextType = normalizeType(rest.componentType);
     if (!isAllowedComponentType(nextType)) throw new Error(`Unsupported component type: ${rest.componentType}`);
+    const childDefinitionAny = await ComponentDefinition.findOne({ type: nextType }).lean();
+    if (childDefinitionAny && childDefinitionAny.isActive === false) {
+      throw new Error(`Component type "${nextType}" is disabled by registry governance`);
+    }
   }
   const movingParentId = Object.prototype.hasOwnProperty.call(rest, 'parentId') ? (rest.parentId || null) : current.parentId;
   const movingPageRoute = Object.prototype.hasOwnProperty.call(rest, 'pageRoute') ? rest.pageRoute : current.pageRoute;
@@ -148,6 +162,11 @@ async function update(projectName, instanceId, payload) {
       throw new Error('Parent must be on the same pageRoute');
     }
     validateSlotContract(normalizeType(parent.componentType), movingType);
+    const parentDefinition = await ComponentDefinition.findOne({ type: normalizeType(parent.componentType), isActive: true }).lean();
+    const allowedChildren = Array.isArray(parentDefinition?.allowedChildren) ? parentDefinition.allowedChildren : [];
+    if (allowedChildren.length > 0 && !allowedChildren.includes(movingType)) {
+      throw new Error(`Registry contract violation: "${parent.componentType}" cannot contain "${movingType}"`);
+    }
   } else {
     validateSlotContract(null, movingType);
   }
