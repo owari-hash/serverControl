@@ -19,9 +19,8 @@ const ComponentDefinitionSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-ComponentDefinitionSchema.pre('save', function onSave(next) {
+ComponentDefinitionSchema.pre('save', function onSave() {
   this.updatedAt = new Date();
-  next();
 });
 
 module.exports = mongoose.model('ComponentDefinition', ComponentDefinitionSchema);

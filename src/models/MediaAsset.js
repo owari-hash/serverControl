@@ -13,9 +13,8 @@ const MediaAssetSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-MediaAssetSchema.pre('save', function onSave(next) {
+MediaAssetSchema.pre('save', function onSave() {
   this.updatedAt = new Date();
-  next();
 });
 
 module.exports = mongoose.model('MediaAsset', MediaAssetSchema);

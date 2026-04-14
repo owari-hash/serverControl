@@ -45,9 +45,8 @@ const TemplateSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-TemplateSchema.pre('save', function onSave(next) {
+TemplateSchema.pre('save', function onSave() {
   this.updatedAt = new Date();
-  next();
 });
 
 module.exports = mongoose.model('Template', TemplateSchema);
