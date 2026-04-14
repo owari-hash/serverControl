@@ -4,24 +4,27 @@ const { validateThemeTokens, TYPOGRAPHY_SCALE, SPACING_SCALE } = require('../../
 
 function normalizeDesignPayload(payload = {}) {
   const next = { ...(payload || {}) };
-  const theme = { ...((next && next.theme) || {}) };
-  const canonicalTokens = theme.tokens || {};
-  const legacyTokens = theme.customTokens || {};
+  const keys = Object.keys(next);
+  const hasThemeDotPath = keys.some((key) => key.startsWith('theme.'));
+  const hasTemplateDotPath = keys.some((key) => key.startsWith('template.'));
 
-  // Preserve both namespaces for backward compatibility across editors/runtimes.
-  theme.tokens = { ...legacyTokens, ...canonicalTokens };
-  theme.customTokens = { ...canonicalTokens, ...legacyTokens };
-  next.theme = theme;
+  if (!hasThemeDotPath && next.theme && typeof next.theme === 'object') {
+    const theme = { ...next.theme };
+    const canonicalTokens = theme.tokens || {};
+    const legacyTokens = theme.customTokens || {};
 
-  if (next.template && typeof next.template === 'object') {
+    // Preserve both namespaces for backward compatibility across editors/runtimes.
+    theme.tokens = { ...legacyTokens, ...canonicalTokens };
+    theme.customTokens = { ...canonicalTokens, ...legacyTokens };
+    next.theme = theme;
+  }
+
+  if (!hasTemplateDotPath && next.template && typeof next.template === 'object') {
     next.template = {
       version: '1.0.0',
       layoutMode: 'legacy',
       ...next.template
     };
-  }
-  if (!next.template) {
-    next.template = { name: '', version: '1.0.0', layoutMode: 'legacy' };
   }
   if (next.theme && typeof next.theme === 'object') {
     next.theme.typography = {
