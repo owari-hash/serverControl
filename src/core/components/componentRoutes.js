@@ -93,4 +93,34 @@ router.post('/reorder', requireAuth, requireProjectAccess('client-admin', 'edito
   }
 });
 
+router.post('/templates/apply', requireAuth, requireProjectAccess('client-admin', 'editor'), async (req, res) => {
+  try {
+    const pageRoute = req.body && req.body.pageRoute ? req.body.pageRoute : '/';
+    const templateName = req.body && req.body.templateName ? req.body.templateName : 'homepage';
+    const components = await componentService.applyTemplate(
+      req.context.projectId,
+      pageRoute,
+      templateName
+    );
+    auditLog(req, 'component.template.apply', { projectName: req.context.projectId, pageRoute, templateName });
+    res.json(ok({ success: true, components }));
+  } catch (error) {
+    res.status(400).json(fail(error.message));
+  }
+});
+
+router.post('/migrate-legacy', requireAuth, requireProjectAccess('client-admin', 'editor'), async (req, res) => {
+  try {
+    const pageRoute = req.body && req.body.pageRoute ? req.body.pageRoute : '/';
+    const result = await componentService.migrateLegacyToStructured(
+      req.context.projectId,
+      pageRoute
+    );
+    auditLog(req, 'component.migrate.legacy', { projectName: req.context.projectId, pageRoute, migrated: result.migrated });
+    res.json(ok({ success: true, ...result }));
+  } catch (error) {
+    res.status(400).json(fail(error.message));
+  }
+});
+
 module.exports = router;

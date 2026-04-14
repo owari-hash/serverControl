@@ -1,4 +1,42 @@
 const WebsiteDesign = require('../../models/WebsiteDesign');
+const { validateThemeTokens, TYPOGRAPHY_SCALE, SPACING_SCALE } = require('../../utils/apiContract');
+
+function normalizeDesignPayload(payload = {}) {
+  const next = { ...(payload || {}) };
+  const theme = { ...((next && next.theme) || {}) };
+  const canonicalTokens = theme.tokens || {};
+  const legacyTokens = theme.customTokens || {};
+
+  // Preserve both namespaces for backward compatibility across editors/runtimes.
+  theme.tokens = { ...legacyTokens, ...canonicalTokens };
+  theme.customTokens = { ...canonicalTokens, ...legacyTokens };
+  next.theme = theme;
+
+  if (next.template && typeof next.template === 'object') {
+    next.template = {
+      version: '1.0.0',
+      layoutMode: 'legacy',
+      ...next.template
+    };
+  }
+  if (!next.template) {
+    next.template = { name: '', version: '1.0.0', layoutMode: 'legacy' };
+  }
+  if (next.theme && typeof next.theme === 'object') {
+    next.theme.typography = {
+      ...TYPOGRAPHY_SCALE,
+      ...(next.theme.typography || {})
+    };
+    next.theme.spacingScale = Array.isArray(next.theme.spacingScale)
+      ? next.theme.spacingScale
+      : [...SPACING_SCALE];
+    const tokenErrors = validateThemeTokens(next.theme);
+    if (tokenErrors.length > 0) {
+      throw new Error(`Invalid theme tokens: ${tokenErrors.join(', ')}`);
+    }
+  }
+  return next;
+}
 
 async function getAllDesigns() {
   return WebsiteDesign.find({}).sort({ updatedAt: -1 });
@@ -11,8 +49,9 @@ async function getDesignByProject(projectName) {
 }
 
 async function createOrUpdateDesign(projectName, payload) {
+  const normalizedPayload = normalizeDesignPayload(payload);
   const update = {
-    ...payload,
+    ...normalizedPayload,
     projectName,
     updatedAt: new Date()
   };

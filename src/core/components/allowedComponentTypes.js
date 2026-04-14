@@ -21,6 +21,7 @@ const COMPONENT_TYPE_META = {
   grid: "layout",
   card: "layout",
   container: "layout",
+  section: "layout",
   pagination: "section",
   button: "primitive",
   modal: "primitive",

@@ -313,3 +313,93 @@ Before calling backend:
 
 Treat `frontend_integration.md` as legacy reference only.
 Use this file (`frontend_integration_v2_fix.md`) as the active source for implementation.
+
+---
+
+## 11) Design Schema v2 (Backward-Compatible)
+
+`WebsiteDesign` now supports optional canonical fields for Wix-style templates while preserving existing payload compatibility.
+
+### New optional fields
+
+- `template.name` (string)
+- `template.version` (string)
+- `template.layoutMode` (`absolute` | `grid`)
+- `theme.tokens` (map of canonical tokens)
+- `responsive.breakpoints.mobile` (number)
+- `responsive.breakpoints.tablet` (number)
+- `responsive.breakpoints.desktop` (number)
+- `responsive.pages[]` (per-route responsive overrides)
+
+### Compatibility contract
+
+- Existing `theme.customTokens` is still accepted and written.
+- Service normalization mirrors both namespaces:
+  - `theme.tokens <- merge(theme.customTokens, theme.tokens)`
+  - `theme.customTokens <- merge(theme.tokens, theme.customTokens)`
+- Existing clients that only write `customTokens` continue to work.
+
+### Patch example (v2)
+
+```json
+{
+  "template.name": "Business Landing",
+  "template.version": "1.0.0",
+  "template.layoutMode": "grid",
+  "theme.tokens.surface-default": "bg-white text-slate-900",
+  "theme.tokens.text-primary": "text-slate-900",
+  "responsive.breakpoints.mobile": 375,
+  "responsive.breakpoints.tablet": 768,
+  "responsive.breakpoints.desktop": 1440
+}
+```
+
+---
+
+## 12) Token Resolution Precedence (Runtime)
+
+`cmsBuilder` token engine now resolves style values with this precedence:
+
+1. Explicit component props
+2. `theme.tokens` (canonical v2)
+3. `theme.customTokens` (legacy)
+4. Base defaults from renderer
+
+This ensures predictable rendering while keeping old projects valid.
+
+---
+
+## 13) Template Preset Apply Flow
+
+`cmssuperadmincanvas` now supports one-click preset apply:
+
+1. Patch design token/template fields.
+2. Replace route components with deterministic preset blocks.
+3. Reorder roots to keep shell-safe ordering (`header` first, `footer` last).
+
+Current presets:
+
+- `business-landing`
+- `saas-landing`
+
+---
+
+## 14) Cross-Repo Verification Checklist
+
+### Editor (`cmssuperadmincanvas`)
+
+- Switch `desktop/tablet/mobile` and verify preview width changes.
+- Save breakpoints and refresh: ensure values persist from `design.responsive.breakpoints`.
+- Apply each preset and verify the route is replaced deterministically.
+
+### API (`serverControl`)
+
+- `PATCH /core/designs/:name` with v2 fields returns persisted values.
+- Confirm both `theme.tokens` and `theme.customTokens` are present after patch.
+- Verify component reorder places `header` before body sections and `footer` last.
+
+### Runtime (`cmsBuilder`)
+
+- Render route with only global shell components and verify runtime fallback injects header/footer.
+- In dev mode, confirm console warnings for missing required props.
+- In dev mode, confirm unknown `token:*` references produce diagnostics warnings.

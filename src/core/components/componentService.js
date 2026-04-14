@@ -1,6 +1,70 @@
 const crypto = require('crypto');
 const ComponentInstance = require('../../models/ComponentInstance');
 const { validateComponentPayload } = require('../../utils/apiContract');
+const { isAllowedComponentType } = require('./allowedComponentTypes');
+
+const STRUCTURED_ROOT_ALLOWED = new Set(['section', 'header', 'hero', 'about', 'services', 'contact', 'text', 'news', 'rental', 'jobs', 'footer', 'contact-form']);
+
+function normalizeType(v) {
+  return typeof v === 'string' ? v.trim().toLowerCase() : '';
+}
+
+function validateSlotContract(parentType, childType) {
+  if (!parentType) {
+    if (!STRUCTURED_ROOT_ALLOWED.has(childType)) {
+      throw new Error(`Root can only contain section/page-level components; got "${childType}"`);
+    }
+    return;
+  }
+  if (parentType === 'section') {
+    if (childType !== 'container') throw new Error('section can only contain container');
+    return;
+  }
+  if (parentType === 'container') {
+    if (!new Set(['grid', 'card', 'text', 'about', 'services', 'contact', 'news', 'rental', 'jobs', 'contact-form', 'hero', 'header', 'footer', 'twocolumn', 'modal']).has(childType)) {
+      throw new Error(`container cannot contain "${childType}"`);
+    }
+    return;
+  }
+  if (parentType === 'grid') {
+    if (new Set(['section', 'container', 'header', 'footer']).has(childType)) {
+      throw new Error(`grid cannot contain "${childType}"`);
+    }
+  }
+}
+
+function templateRootOrder(type) {
+  const map = {
+    header: 0,
+    hero: 1,
+    about: 2,
+    services: 3,
+    contact: 4,
+    footer: 5
+  };
+  return Object.prototype.hasOwnProperty.call(map, type) ? map[type] : 99;
+}
+
+function sectionDefaults(name) {
+  return {
+    componentType: 'section',
+    props: {
+      minHeight: name === 'header' ? 80 : name === 'footer' ? 300 : name === 'hero' ? 600 : 500,
+      paddingY: 80,
+      backgroundColor: '#ffffff'
+    }
+  };
+}
+
+function leafDefaults(name) {
+  if (name === 'header') return { componentType: 'header', props: { title: 'Site', links: [] } };
+  if (name === 'hero') return { componentType: 'hero', props: { title: 'Welcome', subtitle: 'Introduce your business' } };
+  if (name === 'about') return { componentType: 'about', props: { title: 'About', description: '' } };
+  if (name === 'services') return { componentType: 'services', props: { title: 'Services', items: [] } };
+  if (name === 'contact') return { componentType: 'contact', props: { title: 'Contact', subtitle: '' } };
+  if (name === 'footer') return { componentType: 'footer', props: { title: 'Site', copyright: '© All rights reserved' } };
+  return { componentType: name, props: {} };
+}
 
 async function list(projectName, pageRoute) {
   const query = { projectName };
@@ -17,6 +81,22 @@ async function create(projectName, payload) {
   const validation = validateComponentPayload(payload);
   if (!validation.valid) {
     throw new Error(validation.errors.join(', '));
+  }
+
+  const childType = normalizeType(payload.componentType);
+  if (!isAllowedComponentType(childType)) {
+    throw new Error(`Unsupported component type: ${payload.componentType}`);
+  }
+  const parentId = payload.parentId || null;
+  if (parentId) {
+    const parent = await ComponentInstance.findOne({ projectName, instanceId: parentId }).lean();
+    if (!parent) throw new Error('Parent instance not found');
+    if (String(parent.pageRoute) !== String(payload.pageRoute)) {
+      throw new Error('Parent must be on the same pageRoute');
+    }
+    validateSlotContract(normalizeType(parent.componentType), childType);
+  } else {
+    validateSlotContract(null, childType);
   }
 
   let order = payload.order;
@@ -48,16 +128,33 @@ async function update(projectName, instanceId, payload) {
   }
 
   const { props: propsPatch, ...rest } = payload;
+  const current = await ComponentInstance.findOne({ projectName, instanceId }).lean();
+  if (!current) throw new Error('Component instance not found');
+  if (Object.prototype.hasOwnProperty.call(rest, 'componentType')) {
+    const nextType = normalizeType(rest.componentType);
+    if (!isAllowedComponentType(nextType)) throw new Error(`Unsupported component type: ${rest.componentType}`);
+  }
+  const movingParentId = Object.prototype.hasOwnProperty.call(rest, 'parentId') ? (rest.parentId || null) : current.parentId;
+  const movingPageRoute = Object.prototype.hasOwnProperty.call(rest, 'pageRoute') ? rest.pageRoute : current.pageRoute;
+  const movingType = normalizeType(Object.prototype.hasOwnProperty.call(rest, 'componentType') ? rest.componentType : current.componentType);
+  if (movingParentId) {
+    if (movingParentId === instanceId) throw new Error('Component cannot parent itself');
+    const parent = await ComponentInstance.findOne({ projectName, instanceId: movingParentId }).lean();
+    if (!parent) throw new Error('Parent instance not found');
+    if (String(parent.pageRoute) !== String(movingPageRoute)) {
+      throw new Error('Parent must be on the same pageRoute');
+    }
+    validateSlotContract(normalizeType(parent.componentType), movingType);
+  } else {
+    validateSlotContract(null, movingType);
+  }
   const $set = {
     ...rest,
     updatedAt: new Date()
   };
 
   if (propsPatch !== undefined) {
-    const existing = await ComponentInstance.findOne({ projectName, instanceId }).lean();
-    if (!existing) throw new Error('Component instance not found');
-
-    const prevRaw = existing.props;
+    const prevRaw = current.props;
     const prev =
       prevRaw && typeof prevRaw === 'object' && !Array.isArray(prevRaw) ? { ...prevRaw } : {};
 
@@ -149,6 +246,115 @@ async function patchCanvasLayout(projectName, instanceId, patch) {
   return instance;
 }
 
+async function applyTemplate(projectName, pageRoute = '/', templateName = 'homepage') {
+  const route = pageRoute || '/';
+  if (templateName !== 'homepage') {
+    throw new Error(`Unknown template: ${templateName}`);
+  }
+  await ComponentInstance.deleteMany({ projectName, pageRoute: route });
+  const base = ['header', 'hero', 'about', 'services', 'contact', 'footer'];
+  let order = 0;
+  for (const rootType of base) {
+    const sectionId = crypto.randomUUID();
+    const containerId = crypto.randomUUID();
+    const gridId = crypto.randomUUID();
+    const leafId = crypto.randomUUID();
+    await ComponentInstance.create({
+      instanceId: sectionId,
+      projectName,
+      pageRoute: route,
+      componentType: sectionDefaults(rootType).componentType,
+      parentId: null,
+      slot: null,
+      order: order++,
+      props: sectionDefaults(rootType).props
+    });
+    await ComponentInstance.create({
+      instanceId: containerId,
+      projectName,
+      pageRoute: route,
+      componentType: 'container',
+      parentId: sectionId,
+      slot: 'default',
+      order: 0,
+      props: { maxWidthPx: 1200, padding: 'lg' }
+    });
+    await ComponentInstance.create({
+      instanceId: gridId,
+      projectName,
+      pageRoute: route,
+      componentType: 'grid',
+      parentId: containerId,
+      slot: 'default',
+      order: 0,
+      props: { columns: 12, gap: 'md', minChildWidth: 100 }
+    });
+    const leaf = leafDefaults(rootType);
+    await ComponentInstance.create({
+      instanceId: leafId,
+      projectName,
+      pageRoute: route,
+      componentType: leaf.componentType,
+      parentId: gridId,
+      slot: 'default',
+      order: 0,
+      props: leaf.props
+    });
+  }
+  return tree(projectName, route);
+}
+
+async function migrateLegacyToStructured(projectName, pageRoute = '/') {
+  const route = pageRoute || '/';
+  const roots = await ComponentInstance.find({ projectName, pageRoute: route, parentId: null }).sort({ order: 1 }).lean();
+  const legacyRoots = roots.filter((r) => normalizeType(r.componentType) !== 'section');
+  if (legacyRoots.length === 0) {
+    return { migrated: 0, message: 'No legacy roots found' };
+  }
+  let migrated = 0;
+  for (const root of legacyRoots) {
+    const sectionId = crypto.randomUUID();
+    const containerId = crypto.randomUUID();
+    const gridId = crypto.randomUUID();
+    await ComponentInstance.create({
+      instanceId: sectionId,
+      projectName,
+      pageRoute: route,
+      componentType: 'section',
+      parentId: null,
+      slot: null,
+      order: templateRootOrder(normalizeType(root.componentType)),
+      props: { minHeight: 500, paddingY: 80, backgroundColor: '#ffffff' }
+    });
+    await ComponentInstance.create({
+      instanceId: containerId,
+      projectName,
+      pageRoute: route,
+      componentType: 'container',
+      parentId: sectionId,
+      slot: 'default',
+      order: 0,
+      props: { maxWidthPx: 1200, padding: 'lg' }
+    });
+    await ComponentInstance.create({
+      instanceId: gridId,
+      projectName,
+      pageRoute: route,
+      componentType: 'grid',
+      parentId: containerId,
+      slot: 'default',
+      order: 0,
+      props: { columns: 12, gap: 'md', minChildWidth: 100 }
+    });
+    await ComponentInstance.updateOne(
+      { projectName, instanceId: root.instanceId },
+      { $set: { parentId: gridId, slot: 'default', order: 0, updatedAt: new Date() } }
+    );
+    migrated += 1;
+  }
+  return { migrated, message: `Migrated ${migrated} root components` };
+}
+
 module.exports = {
   list,
   tree,
@@ -156,5 +362,7 @@ module.exports = {
   update,
   remove,
   reorder,
-  patchCanvasLayout
+  patchCanvasLayout,
+  applyTemplate,
+  migrateLegacyToStructured
 };
