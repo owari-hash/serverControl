@@ -7,6 +7,10 @@ const designRoutes = require("../core/designs/designRoutes");
 const projectRoutes = require("../core/projects/projectRoutes");
 const userRoutes = require("../core/users/userRoutes");
 const permissionRoutes = require("../core/permissions/permissionRoutes");
+const templateRoutes = require("../core/templates/templateRoutes");
+const registryRoutes = require("../core/registry/registryRoutes");
+const mediaRoutes = require("../core/media/mediaRoutes");
+const analyticsRoutes = require("../core/analytics/analyticsRoutes");
 
 const ecommerceRoutes = require("../modules/ecommerce/ecommerceRoutes");
 const landingRoutes = require("../modules/landing/landingRoutes");
@@ -52,6 +56,10 @@ router.use("/v2/core/designs", designRoutes);
 router.use("/v2/core/projects", requireAuth, projectRoutes);
 router.use("/v2/core/users", requireAuth, userRoutes);
 router.use("/v2/core/permissions", requireAuth, permissionRoutes);
+router.use("/v2/core/templates", templateRoutes);
+router.use("/v2/core/registry", registryRoutes);
+router.use("/v2/core/media", mediaRoutes);
+router.use("/v2/core/analytics", analyticsRoutes);
 
 router.use(
   "/v2/modules/ecommerce",

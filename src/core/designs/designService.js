@@ -1,4 +1,5 @@
 const WebsiteDesign = require('../../models/WebsiteDesign');
+const { validateDesignGovernance } = require('../governance/validationRules');
 const { validateThemeTokens, TYPOGRAPHY_SCALE, SPACING_SCALE } = require('../../utils/apiContract');
 
 function normalizeDesignPayload(payload = {}) {
@@ -50,6 +51,7 @@ async function getDesignByProject(projectName) {
 
 async function createOrUpdateDesign(projectName, payload) {
   const normalizedPayload = normalizeDesignPayload(payload);
+  validateDesignGovernance(normalizedPayload);
   const update = {
     ...normalizedPayload,
     projectName,

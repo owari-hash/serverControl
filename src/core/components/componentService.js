@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const ComponentInstance = require('../../models/ComponentInstance');
 const { validateComponentPayload } = require('../../utils/apiContract');
 const { isAllowedComponentType } = require('./allowedComponentTypes');
+const { validateComponentGovernance } = require('../governance/validationRules');
 
 const STRUCTURED_ROOT_ALLOWED = new Set(['section', 'header', 'hero', 'about', 'services', 'contact', 'text', 'news', 'rental', 'jobs', 'footer', 'contact-form']);
 
@@ -110,6 +111,8 @@ async function create(projectName, payload) {
     order = lastSibling ? lastSibling.order + 1 : 0;
   }
 
+  validateComponentGovernance(payload);
+
   return ComponentInstance.create({
     instanceId: payload.instanceId || crypto.randomUUID(),
     projectName,
@@ -175,6 +178,7 @@ async function update(projectName, instanceId, payload) {
         merged._canvas = { ...prevCanvas, ...patchCanvas };
       }
       $set.props = merged;
+      validateComponentGovernance({ ...current, ...rest, props: merged });
     } else {
       throw new Error('props must be an object or null');
     }
