@@ -2,10 +2,11 @@ const crypto = require('crypto');
 const ComponentInstance = require('../../models/ComponentInstance');
 const ComponentDefinition = require('../../models/ComponentDefinition');
 const { validateComponentPayload } = require('../../utils/apiContract');
-const { isAllowedComponentType } = require('./allowedComponentTypes');
+const { isAllowedComponentType, ALLOWED_COMPONENT_TYPES } = require('./allowedComponentTypes');
 const { validateComponentGovernance } = require('../governance/validationRules');
 
-const STRUCTURED_ROOT_ALLOWED = new Set(['section', 'header', 'hero', 'about', 'services', 'contact', 'text', 'news', 'rental', 'jobs', 'footer', 'contact-form']);
+// Allow all known component types at the root level for the freeform Wix-like builder
+const STRUCTURED_ROOT_ALLOWED = new Set(ALLOWED_COMPONENT_TYPES);
 
 function normalizeType(v) {
   return typeof v === 'string' ? v.trim().toLowerCase() : '';
@@ -14,25 +15,18 @@ function normalizeType(v) {
 function validateSlotContract(parentType, childType) {
   if (!parentType) {
     if (!STRUCTURED_ROOT_ALLOWED.has(childType)) {
-      throw new Error(`Root can only contain section/page-level components; got "${childType}"`);
+      throw new Error(`Root can only contain allowed components; got "${childType}"`);
     }
     return;
   }
-  if (parentType === 'section') {
-    if (childType !== 'container') throw new Error('section can only contain container');
-    return;
-  }
-  if (parentType === 'container') {
-    if (!new Set(['grid', 'card', 'text', 'about', 'services', 'contact', 'news', 'rental', 'jobs', 'contact-form', 'hero', 'header', 'footer', 'twocolumn', 'modal']).has(childType)) {
-      throw new Error(`container cannot contain "${childType}"`);
-    }
-    return;
-  }
-  if (parentType === 'grid') {
-    if (new Set(['section', 'container', 'header', 'footer']).has(childType)) {
-      throw new Error(`grid cannot contain "${childType}"`);
-    }
-  }
+  
+  // In a free-form Wix-like builder, we want to allow much more flexible nesting.
+  // We still prevent obvious infinite loops or absurd nestings if needed, but 
+  // for now we disable strict slot blocking to let the frontend control layout.
+  
+  // if (parentType === 'section') { ... }
+  // if (parentType === 'container') { ... }
+  // if (parentType === 'grid') { ... }
 }
 
 function templateRootOrder(type) {
