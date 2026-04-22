@@ -22,6 +22,14 @@ module.exports = {
     "true",
   AUTH_RATE_WINDOW_MS: parseInt(process.env.AUTH_RATE_WINDOW_MS || "60000"),
   AUTH_RATE_MAX_ATTEMPTS: parseInt(process.env.AUTH_RATE_MAX_ATTEMPTS || "20"),
+  /** CMS Builder v1: POST /api/v1/admin/auth/login (non-email username) */
+  CMS_V1_ADMIN_USERNAME: process.env.CMS_V1_ADMIN_USERNAME || "admin",
+  CMS_V1_ADMIN_PASSWORD:
+    process.env.CMS_V1_ADMIN_PASSWORD || process.env.AUTH_PASSWORD || "123456",
+  /** JWT `sub` for v1 env-based login (should match an existing identity if you use DB features) */
+  CMS_V1_ADMIN_TOKEN_EMAIL:
+    process.env.CMS_V1_ADMIN_TOKEN_EMAIL || process.env.AUTH_EMAIL || "admin@demo.com",
+  CMS_V1_ADMIN_ROLE: process.env.CMS_V1_ADMIN_ROLE || "superadmin",
   SSH_KEY_PATH: process.env.SSH_KEY_PATH || "",
   SSH_CONNECT_TIMEOUT_MS: parseInt(
     process.env.SSH_CONNECT_TIMEOUT_MS || "15000",

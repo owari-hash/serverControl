@@ -26,6 +26,7 @@ const {
 const { requireAuth } = require("../shared/middleware/requireAuth");
 const { requireProjectAccess } = require("../shared/middleware/requireProjectAccess");
 const contentAdminRoutes = require("./contentAdmin/contentAdminRoutes");
+const adminV1Routes = require("./v1/admin/adminV1Routes");
 
 const router = express.Router();
 
@@ -37,12 +38,13 @@ router.get("/", (req, res) => {
     ok({
       success: true,
       message: "Modular API root",
-      versions: ["v2"],
+      versions: ["v1", "v2"],
     }),
   );
 });
 
 // Modular APIs.
+router.use("/v1/admin", adminV1Routes);
 router.use("/v2/core/auth", authRoutes);
 router.use("/v2/core/components", requireProjectContext, componentRoutes);
 router.use(
