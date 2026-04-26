@@ -1,8 +1,6 @@
 /**
  * Single source of truth for `/api/v2/content-admin` paths and text-field rules.
- * Human reference: CONTENT_ADMIN_API.md in this folder.
- * External client-admin UIs should copy paths / whitelist from here (or consume this
- * file if you share the repo); keep lists aligned when extending the API.
+ * Handoff: CONTENT_ADMIN_HANDOFF.md — full HTTP: CONTENT_ADMIN_API.md
  */
 
 /** Keys accepted by POST .../blocks/:instanceId/text (merged into component props). */

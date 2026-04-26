@@ -57,6 +57,9 @@ function leafDefaults(name) {
   if (name === 'hero') return { componentType: 'hero', props: { title: 'Welcome', subtitle: 'Introduce your business' } };
   if (name === 'about') return { componentType: 'about', props: { title: 'About', description: '' } };
   if (name === 'services') return { componentType: 'services', props: { title: 'Services', items: [] } };
+  if (name === 'features') return { componentType: 'features', props: { title: 'Features', items: [] } };
+  if (name === 'promo') return { componentType: 'promo', props: { title: 'Promo', subtitle: '' } };
+  if (name === 'clients') return { componentType: 'clients', props: { title: 'Clients', items: [] } };
   if (name === 'contact') return { componentType: 'contact', props: { title: 'Contact', subtitle: '' } };
   if (name === 'footer') return { componentType: 'footer', props: { title: 'Site', copyright: '© All rights reserved' } };
   return { componentType: name, props: {} };

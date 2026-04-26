@@ -2,7 +2,7 @@
 
 **Only** the `/api/v2/content-admin` surface. For editors with a **client-admin** or **editor** project binding.
 
-**Handing this off to another team (client admin app only):** Give them this file plus `contentAdminContract.js` in the same folder. They do **not** need access to any other admin codebase. Base URL is `{PM_SERVER}/api/v2` (see your deployment). Auth: `POST /api/v2/core/auth/login` with `{ "email", "password" }` → use returned `accessToken` on every content-admin call. Enable **CORS** for their admin origin on the PM server, or they proxy server-side to avoid CORS.
+**External team building the content admin app:** use **[CONTENT_ADMIN_HANDOFF.md](./CONTENT_ADMIN_HANDOFF.md)** (checklist, auth, CORS, route summary). This file remains the detailed reference.
 
 Authentication: **`Authorization: Bearer <access_token>`**  
 Project scope: **`x-project-id: <projectName>`** (must match an active binding)
