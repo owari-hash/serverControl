@@ -2,7 +2,11 @@ const crypto = require('crypto');
 const ComponentInstance = require('../../models/ComponentInstance');
 const ComponentDefinition = require('../../models/ComponentDefinition');
 const { validateComponentPayload } = require('../../utils/apiContract');
-const { isAllowedComponentType, ALLOWED_COMPONENT_TYPES } = require('./allowedComponentTypes');
+const {
+  isAllowedComponentType,
+  isFreeCanvasChildType,
+  ALLOWED_COMPONENT_TYPES,
+} = require('./allowedComponentTypes');
 const { validateComponentGovernance } = require('../governance/validationRules');
 
 // Allow all known component types at the root level for the freeform Wix-like builder
@@ -101,7 +105,12 @@ async function create(projectName, payload) {
     validateSlotContract(normalizeType(parent.componentType), childType);
     const parentDefinition = await ComponentDefinition.findOne({ type: normalizeType(parent.componentType), isActive: true }).lean();
     const allowedChildren = Array.isArray(parentDefinition?.allowedChildren) ? parentDefinition.allowedChildren : [];
-    if (allowedChildren.length > 0 && !allowedChildren.includes(childType)) {
+    const skipChildContract = isFreeCanvasChildType(childType) && String(payload.slot || '') === 'free';
+    if (
+      !skipChildContract &&
+      allowedChildren.length > 0 &&
+      !allowedChildren.includes(childType)
+    ) {
       throw new Error(`Registry contract violation: "${parent.componentType}" cannot contain "${childType}"`);
     }
   } else {
@@ -173,7 +182,14 @@ async function update(projectName, instanceId, payload) {
     validateSlotContract(normalizeType(parent.componentType), movingType);
     const parentDefinition = await ComponentDefinition.findOne({ type: normalizeType(parent.componentType), isActive: true }).lean();
     const allowedChildren = Array.isArray(parentDefinition?.allowedChildren) ? parentDefinition.allowedChildren : [];
-    if (allowedChildren.length > 0 && !allowedChildren.includes(movingType)) {
+    const effectiveSlot = Object.prototype.hasOwnProperty.call(rest, 'slot') ? rest.slot : current.slot;
+    const skipMoveChildContract =
+      isFreeCanvasChildType(movingType) && String(effectiveSlot || '') === 'free';
+    if (
+      !skipMoveChildContract &&
+      allowedChildren.length > 0 &&
+      !allowedChildren.includes(movingType)
+    ) {
       throw new Error(`Registry contract violation: "${parent.componentType}" cannot contain "${movingType}"`);
     }
   } else {

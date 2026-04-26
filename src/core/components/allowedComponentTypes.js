@@ -36,12 +36,39 @@ const COMPONENT_TYPE_META = {
 const ALLOWED = Object.freeze(Object.keys(COMPONENT_TYPE_META));
 const allowedSet = new Set(ALLOWED.map((t) => t.toLowerCase()));
 
+/**
+ * Superadmin WixBuilder persists canvas free elements as child instances with
+ * `componentType: free_<kind>` (see cmsSuperAdmin WixBuilder pagesToComponents).
+ * Keep suffixes aligned with builder free-element kinds.
+ */
+const FREE_CANVAS_KINDS = new Set([
+  "text",
+  "button",
+  "input",
+  "image",
+  "card",
+  "section",
+  "divider",
+  "badge",
+  "menu",
+]);
+
 function normalizeType(type) {
   return typeof type === "string" ? type.trim().toLowerCase() : "";
 }
 
+/** `free_text`, `free_divider`, … — stored as component rows, not cmsBuilder section roots */
+function isFreeCanvasChildType(componentType) {
+  const t = normalizeType(componentType);
+  if (!t.startsWith("free_")) return false;
+  const kind = t.slice("free_".length);
+  return FREE_CANVAS_KINDS.has(kind);
+}
+
 function isAllowedComponentType(componentType) {
-  return allowedSet.has(normalizeType(componentType));
+  const t = normalizeType(componentType);
+  if (isFreeCanvasChildType(t)) return true;
+  return allowedSet.has(t);
 }
 
 function listComponentTypes() {
@@ -54,6 +81,8 @@ function listComponentTypes() {
 module.exports = {
   ALLOWED_COMPONENT_TYPES: ALLOWED,
   COMPONENT_TYPE_META,
+  FREE_CANVAS_KINDS,
+  isFreeCanvasChildType,
   isAllowedComponentType,
   listComponentTypes,
 };
