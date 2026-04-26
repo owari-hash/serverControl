@@ -88,9 +88,92 @@ async function mergeMediaItems(projectName, instanceId, items, mode = "append") 
   return mergeImageProps(projectName, instanceId, images, mode === "replace" ? "replace" : "append");
 }
 
+const ALLOWED_FREE_ELEMENT_TYPES = new Set([
+  "text",
+  "button",
+  "image",
+  "section",
+  "card",
+  "input",
+  "divider",
+  "badge",
+  "menu",
+]);
+
+function sanitizeNavLink(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    label: typeof raw.label === "string" ? raw.label : "",
+    href: typeof raw.href === "string" && raw.href.trim() ? raw.href.trim() : "/",
+    isExternal: !!raw.isExternal,
+  };
+}
+
+/**
+ * @param {unknown} raw
+ * @param {number} index
+ */
+function sanitizeFreeElement(raw, index) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`elements[${index}] must be an object`);
+  }
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  if (!id) throw new Error(`elements[${index}].id is required`);
+  const type = typeof raw.type === "string" ? raw.type.trim() : "";
+  if (!ALLOWED_FREE_ELEMENT_TYPES.has(type)) {
+    throw new Error(`elements[${index}].type is not an allowed free element type`);
+  }
+  /** @type {Record<string, unknown>} */
+  const out = { id, type };
+  const copyStr = (k) => {
+    if (raw[k] == null) return;
+    if (typeof raw[k] === "string") out[k] = raw[k];
+  };
+  const copyNum = (k) => {
+    if (raw[k] == null) return;
+    const n = typeof raw[k] === "number" ? raw[k] : Number.parseFloat(String(raw[k]));
+    if (Number.isFinite(n)) out[k] = n;
+  };
+  copyStr("label");
+  copyStr("value");
+  copyStr("color");
+  copyStr("bg");
+  copyStr("placeholder");
+  copyStr("align");
+  copyStr("href");
+  copyStr("width");
+  copyStr("src");
+  copyNum("radius");
+  copyNum("size");
+  copyNum("height");
+  if (raw.isExternal != null) out.isExternal = !!raw.isExternal;
+  if (type === "menu" && Array.isArray(raw.links)) {
+    out.links = raw.links.map(sanitizeNavLink).filter(Boolean);
+  }
+  return out;
+}
+
+/**
+ * Replace props._elements (freeform canvas elements from superadmin / client admin).
+ * @param {unknown[]} elements
+ */
+async function replaceElementsProps(projectName, instanceId, elements) {
+  const doc = await getInstance(projectName, instanceId);
+  const props = { ...(doc.props && typeof doc.props === "object" ? doc.props : {}) };
+  const list = Array.isArray(elements)
+    ? elements.map((el, i) => sanitizeFreeElement(el, i))
+    : [];
+  props._elements = list;
+  doc.props = props;
+  doc.updatedAt = new Date();
+  await doc.save();
+  return doc;
+}
+
 module.exports = {
   mergeTextProps,
   mergeImageProps,
   mergeMediaItems,
+  replaceElementsProps,
   TEXT_FIELD_WHITELIST,
 };

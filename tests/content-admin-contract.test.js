@@ -18,4 +18,5 @@ test("content admin path helpers are non-empty", () => {
   assert.match(CONTENT_ADMIN_PATHS.blockText("abc-1"), /abc-1\/text$/);
   assert.match(CONTENT_ADMIN_PATHS.blockImages("x"), /x\/images$/);
   assert.match(CONTENT_ADMIN_PATHS.blockMedia("y"), /y\/media$/);
+  assert.match(CONTENT_ADMIN_PATHS.blockElements("z"), /z\/elements$/);
 });

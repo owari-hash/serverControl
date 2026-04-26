@@ -47,6 +47,8 @@ const CONTENT_ADMIN_PATHS = {
     `/content-admin/blocks/${encodeURIComponent(instanceId)}/images`,
   blockMedia: (instanceId) =>
     `/content-admin/blocks/${encodeURIComponent(instanceId)}/media`,
+  blockElements: (instanceId) =>
+    `/content-admin/blocks/${encodeURIComponent(instanceId)}/elements`,
 };
 
 module.exports = {

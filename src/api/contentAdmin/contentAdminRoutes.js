@@ -142,4 +142,32 @@ router.post("/blocks/:instanceId/media", async (req, res) => {
   }
 });
 
+/**
+ * POST /blocks/:instanceId/elements
+ * Body: { "elements": [ { "id", "type", ... }, ... ] }
+ * Replaces props._elements (freeform block children).
+ */
+router.post("/blocks/:instanceId/elements", async (req, res) => {
+  try {
+    const projectName = req.context.projectId;
+    const { elements } = req.body || {};
+    if (!Array.isArray(elements)) {
+      return res.status(400).json(fail('Body must include array "elements"'));
+    }
+    const component = await contentAdminService.replaceElementsProps(
+      projectName,
+      req.params.instanceId,
+      elements,
+    );
+    auditLog(req, "content-admin.elements", {
+      instanceId: req.params.instanceId,
+      count: elements.length,
+    });
+    res.json(ok({ success: true, component }));
+  } catch (error) {
+    const status = error.message === "Component instance not found" ? 404 : 400;
+    res.status(status).json(fail(error.message));
+  }
+});
+
 module.exports = router;
