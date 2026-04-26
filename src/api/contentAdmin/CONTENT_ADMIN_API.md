@@ -2,6 +2,8 @@
 
 **Only** the `/api/v2/content-admin` surface. For editors with a **client-admin** or **editor** project binding.
 
+**Handing this off to another team (client admin app only):** Give them this file plus `contentAdminContract.js` in the same folder. They do **not** need access to any other admin codebase. Base URL is `{PM_SERVER}/api/v2` (see your deployment). Auth: `POST /api/v2/core/auth/login` with `{ "email", "password" }` → use returned `accessToken` on every content-admin call. Enable **CORS** for their admin origin on the PM server, or they proxy server-side to avoid CORS.
+
 Authentication: **`Authorization: Bearer <access_token>`**  
 Project scope: **`x-project-id: <projectName>`** (must match an active binding)
 
@@ -73,7 +75,7 @@ Every component instance in the database has an **`instanceId`** (string, unique
 
 ### `POST /api/v2/content-admin/blocks/:instanceId/text`
 
-Merges allowed keys into existing `props`. Other `props` keys are left unchanged. Keys not in the whitelist are ignored. Does **not** accept theme, layout, `links`, `buttons`, or nested objects.
+Merges allowed keys into existing `props`. Other `props` keys are left unchanged. Keys not in the whitelist are ignored. Does **not** accept `links`, `buttons`, or arbitrary nested objects — only the whitelisted scalar fields.
 
 **Headers:** `Authorization`, `Content-Type: application/json`, `x-project-id`
 
@@ -88,9 +90,7 @@ Merges allowed keys into existing `props`. Other `props` keys are left unchanged
 }
 ```
 
-**Whitelisted `fields` keys** (must be strings if present):
-
-`title`, `subtitle`, `description`, `content`, `copyright`, `welcomeMessage`, `placeholder`, `sendButtonText`, `launcherLabel`, `openButtonText`, `closeButtonText`, `confirmButtonText`, `submitButtonText`, `cancelButtonText`, `loadingText`, `agentName`, `offlineMessage`
+**Whitelisted `fields` keys:** authoritative array **`CONTENT_ADMIN_TEXT_FIELD_KEYS`** in `contentAdminContract.js` (includes styling-related string keys such as `textColor`, `fontSize`, etc.). Unknown keys are ignored; `fontSize` may be a number.
 
 **Errors**
 
@@ -166,7 +166,7 @@ Same storage as **`props.images`** for items with `"kind": "image"`. Other kinds
 ## 6) What this API does not do
 
 - No multipart file upload — host files elsewhere, pass **HTTPS URLs**.
-- No editing **`links`**, **`buttons`**, **`theme`**, **`align`**, **`spacing`**, or other non-whitelisted `props` via the text route (use a product-specific path or extend the whitelist in `contentAdminService.js` if you need that).
+- No editing **`links`**, **`buttons`**, or other non-whitelisted `props` via the text route (extend **`contentAdminContract.js`** if you need additional keys).
 - No creating/deleting instances or reordering in this API (out of scope for these routes).
 
 ---

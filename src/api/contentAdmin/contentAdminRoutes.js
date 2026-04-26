@@ -1,3 +1,6 @@
+/**
+ * Content-admin HTTP handlers. Machine-readable contract: ./contentAdminContract.js
+ */
 const express = require("express");
 const { ok, fail } = require("../../shared/http/response");
 const { auditLog } = require("../../shared/logging/auditLog");

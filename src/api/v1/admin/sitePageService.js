@@ -19,7 +19,7 @@ async function saveSections(pageId, lang, sections) {
   await SitePage.findOneAndUpdate(
     { pageId, lang },
     { $set: { sections: body } },
-    { upsert: true, new: true, runValidators: true },
+    { upsert: true, returnDocument: 'after', runValidators: true },
   );
 }
 

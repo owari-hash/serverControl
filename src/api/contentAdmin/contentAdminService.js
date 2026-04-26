@@ -1,35 +1,8 @@
 const ComponentInstance = require("../../models/ComponentInstance");
+const { CONTENT_ADMIN_TEXT_FIELD_KEYS } = require("./contentAdminContract");
 
 /** Allowed keys merged into `props` via POST .../text (strings + numeric fontSize). */
-const TEXT_FIELD_WHITELIST = new Set([
-  "title",
-  "subtitle",
-  "description",
-  "content",
-  "copyright",
-  "welcomeMessage",
-  "placeholder",
-  "sendButtonText",
-  "launcherLabel",
-  "openButtonText",
-  "closeButtonText",
-  "confirmButtonText",
-  "submitButtonText",
-  "cancelButtonText",
-  "loadingText",
-  "agentName",
-  "offlineMessage",
-  "textColor",
-  "backgroundColor",
-  "borderColor",
-  "accentColor",
-  "className",
-  "variant",
-  "theme",
-  "align",
-  "spacing",
-  "fontSize",
-]);
+const TEXT_FIELD_WHITELIST = new Set(CONTENT_ADMIN_TEXT_FIELD_KEYS);
 
 function normalizeImageEntry(raw) {
   if (!raw || typeof raw !== "object") {

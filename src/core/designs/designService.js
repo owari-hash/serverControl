@@ -63,7 +63,7 @@ async function createOrUpdateDesign(projectName, payload) {
   return WebsiteDesign.findOneAndUpdate(
     { projectName },
     update,
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
   );
 }
 

@@ -51,7 +51,7 @@ router.post('/:email/bindings', requireRole('superadmin'), async (req, res) => {
     const binding = await UserProjectBinding.findOneAndUpdate(
       { userEmail: req.params.email, projectName },
       { userEmail: req.params.email, projectName, roles, status: 'ACTIVE' },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
     res.status(201).json(ok({ success: true, binding }));
   } catch (error) {

@@ -103,7 +103,7 @@ class ProjectService {
   }
 
   async updateProject(name, data) {
-    const project = await Project.findOneAndUpdate({ name }, data, { new: true });
+    const project = await Project.findOneAndUpdate({ name }, data, { returnDocument: 'after' });
     if (!project) throw new Error('Project not found');
     
     // Update memory cache

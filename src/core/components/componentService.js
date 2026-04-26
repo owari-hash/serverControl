@@ -117,6 +117,17 @@ async function create(projectName, payload) {
 
   validateComponentGovernance(payload);
 
+  const defaults = leafDefaults(childType);
+  const baseProps =
+    defaults.props && typeof defaults.props === 'object' && !Array.isArray(defaults.props)
+      ? { ...defaults.props }
+      : {};
+  const incoming =
+    payload.props && typeof payload.props === 'object' && !Array.isArray(payload.props)
+      ? payload.props
+      : {};
+  const mergedProps = { ...baseProps, ...incoming };
+
   return ComponentInstance.create({
     instanceId: payload.instanceId || crypto.randomUUID(),
     projectName,
@@ -125,7 +136,7 @@ async function create(projectName, payload) {
     parentId: payload.parentId || null,
     slot: payload.slot || null,
     order,
-    props: payload.props || {}
+    props: mergedProps
   });
 }
 
@@ -200,7 +211,7 @@ async function update(projectName, instanceId, payload) {
   const instance = await ComponentInstance.findOneAndUpdate(
     { projectName, instanceId },
     { $set },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!instance) throw new Error('Component instance not found');
   return instance;
@@ -257,7 +268,7 @@ async function patchCanvasLayout(projectName, instanceId, patch) {
   const instance = await ComponentInstance.findOneAndUpdate(
     { projectName, instanceId },
     { $set: { 'props._canvas': nextCanvas, updatedAt: new Date() } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!instance) throw new Error('Component instance not found');
   return instance;

@@ -19,7 +19,7 @@ async function bindDomain({ projectId, domain, upstreamHost, upstreamPort }) {
       nginxStatus: 'READY',
       nginxConfigPath: configPath
     },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
   );
 }
 
@@ -27,7 +27,7 @@ async function setDomainEnabled(domain, isEnabled) {
   const updated = await DomainBinding.findOneAndUpdate(
     { domain },
     { isEnabled },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!updated) throw new Error('Domain not found');
   return updated;

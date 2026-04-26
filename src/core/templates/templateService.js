@@ -65,7 +65,7 @@ async function updateTemplate(id, patch, actorEmail = '') {
       $push: { versions: { version: nextVersion, snapshot: { ...existing.toObject(), ...patch }, createdBy: actorEmail } },
       $inc: { currentVersion: 1 },
     },
-    { new: true },
+    { returnDocument: 'after' },
   );
   await recordAudit('template.update', actorEmail, id, { patchKeys: Object.keys(patch || {}) });
   return updated;
