@@ -19,6 +19,8 @@ const LAYOUT_LIMITS = {
  */
 const TOP_LEVEL_SIZE_EXEMPT_TYPES = new Set(['button', 'text', 'pagination', 'link', 'icon']);
 
+const { isFreeCanvasChildType } = require('../components/allowedComponentTypes');
+
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }
@@ -27,7 +29,11 @@ function validateComponentGovernance(component = {}) {
   const props = component.props || {};
   const type = String(component.componentType || '').toLowerCase();
 
-  if (!TOP_LEVEL_SIZE_EXEMPT_TYPES.has(type)) {
+  /** WixBuilder `free_*` rows store element height/width (e.g. text line 14px, divider 1px), not section layout. */
+  const sizeExempt =
+    TOP_LEVEL_SIZE_EXEMPT_TYPES.has(type) || isFreeCanvasChildType(type);
+
+  if (!sizeExempt) {
     const width = props.width;
     const height = props.height;
     if (isFiniteNumber(width) && (width < LAYOUT_LIMITS.minComponentWidth || width > LAYOUT_LIMITS.maxComponentWidth)) {
