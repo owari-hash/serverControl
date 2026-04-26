@@ -141,8 +141,11 @@ function sanitizeFreeElement(raw, index) {
   copyStr("placeholder");
   copyStr("align");
   copyStr("href");
-  copyStr("width");
   copyStr("src");
+  if (raw.width != null) {
+    if (typeof raw.width === "string") out.width = raw.width;
+    else if (typeof raw.width === "number" && Number.isFinite(raw.width)) out.width = raw.width;
+  }
   copyNum("radius");
   copyNum("size");
   copyNum("height");
