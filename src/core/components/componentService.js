@@ -60,6 +60,7 @@ function leafDefaults(name) {
   if (name === 'features') return { componentType: 'features', props: { title: 'Features', items: [] } };
   if (name === 'promo') return { componentType: 'promo', props: { title: 'Promo', subtitle: '' } };
   if (name === 'clients') return { componentType: 'clients', props: { title: 'Clients', items: [] } };
+  if (name === 'pricing') return { componentType: 'pricing', props: { title: 'Pricing', items: [] } };
   if (name === 'contact') return { componentType: 'contact', props: { title: 'Contact', subtitle: '' } };
   if (name === 'footer') return { componentType: 'footer', props: { title: 'Site', copyright: '© All rights reserved' } };
   return { componentType: name, props: {} };

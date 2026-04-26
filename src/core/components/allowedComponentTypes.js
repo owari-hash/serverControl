@@ -14,6 +14,7 @@ const COMPONENT_TYPE_META = {
   features: "section",
   promo: "section",
   clients: "section",
+  pricing: "section",
   contact: "section",
   text: "section",
   news: "section",
