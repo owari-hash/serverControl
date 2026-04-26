@@ -35,6 +35,57 @@ router.post('/', requireRole('superadmin'), async (req, res) => {
   }
 });
 
+router.patch('/:email', requireRole('superadmin'), async (req, res) => {
+  try {
+    const { password, role, status } = req.body || {};
+    const targetEmail = req.params.email;
+    const u = await User.findOne({ email: targetEmail });
+    if (!u) return res.status(404).json(fail('User not found'));
+    const updates = {};
+    if (password) updates.passwordHash = hashPassword(String(password));
+    if (role && ['superadmin', 'client-admin', 'editor'].includes(String(role))) {
+      if (u.role === 'superadmin' && String(role) !== 'superadmin') {
+        return res.status(400).json(fail('Cannot demote superadmin'));
+      }
+      updates.role = String(role);
+    }
+    if (status && ['ACTIVE', 'DISABLED'].includes(String(status).toUpperCase())) {
+      updates.status = String(status).toUpperCase();
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.json(ok({ success: true, user: { email: u.email, role: u.role, status: u.status } }));
+    }
+    updates.updatedAt = new Date();
+    const next = await User.findOneAndUpdate(
+      { email: targetEmail },
+      { $set: updates },
+      { returnDocument: 'after', lean: true },
+    );
+    if (!next) return res.status(404).json(fail('User not found'));
+    res.json(ok({ success: true, user: { email: next.email, role: next.role, status: next.status } }));
+  } catch (error) {
+    res.status(400).json(fail(error.message));
+  }
+});
+
+router.delete('/:email', requireRole('superadmin'), async (req, res) => {
+  try {
+    if (String(req.params.email) === String(req.auth?.email)) {
+      return res.status(400).json(fail('Cannot delete your own account'));
+    }
+    const u = await User.findOne({ email: req.params.email });
+    if (!u) return res.status(404).json(fail('User not found'));
+    if (u.role === 'superadmin') {
+      return res.status(400).json(fail('Cannot delete superadmin users'));
+    }
+    await UserProjectBinding.deleteMany({ userEmail: u.email });
+    await User.deleteOne({ _id: u._id });
+    res.json(ok({ success: true }));
+  } catch (error) {
+    res.status(500).json(fail(error.message));
+  }
+});
+
 router.get('/:email/bindings', requireRole('superadmin'), async (req, res) => {
   try {
     const bindings = await UserProjectBinding.find({ userEmail: req.params.email }).lean();
