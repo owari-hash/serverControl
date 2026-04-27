@@ -73,6 +73,9 @@ async function createProject(projectName) {
     const pkgPath = path.join(projectPath, 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     pkg.dependencies['@cms-builder/core'] = cmsBuilderSpecifier;
+    pkg.dependencies['lucide-react'] = '^0.460.0';
+    pkg.dependencies['clsx'] = '^2.1.1';
+    pkg.dependencies['tailwind-merge'] = '^2.6.1';
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
     // 2. Setup .npmrc for the private registry

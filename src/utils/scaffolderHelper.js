@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { BLOCK_PREVIEW_TSX } = require('./rendererTemplate');
 
 class ScaffolderEngine {
   constructor() {}
@@ -46,14 +47,19 @@ class ScaffolderEngine {
     const designPath = path.join(projectPath, 'src', 'lib', 'design.json');
     fs.writeFileSync(designPath, JSON.stringify(normalizedDesign, null, 2));
 
-    // 2. Always generate base route entrypoints
+    // 2. Write Local Renderer
+    const componentsDir = path.join(projectPath, 'src', 'components');
+    if (!fs.existsSync(componentsDir)) fs.mkdirSync(componentsDir, { recursive: true });
+    fs.writeFileSync(path.join(componentsDir, 'BlockPreview.tsx'), BLOCK_PREVIEW_TSX);
+
+    // 3. Always generate base route entrypoints
     this._generateRootPage(projectPath, normalizedDesign.projectName);
     this._generateCatchAllPage(projectPath, normalizedDesign.projectName);
 
-    // 3. Generate static pages when explicit routes are present
+    // 4. Generate static pages when explicit routes are present
     await this._generatePages(normalizedDesign, projectPath);
 
-    // 4. Generate Layout & Styles
+    // 5. Generate Layout & Styles
     this._generateLayout(normalizedDesign, projectPath);
     this._generateGlobalsCss(normalizedDesign, projectPath);
 
@@ -96,7 +102,8 @@ class ScaffolderEngine {
       // We no longer build deep nested React trees here in strings.
       
       const pageContent = `
-import { CMSPage, cmsApi } from '@cms-builder/core';
+import { cmsApi } from '@cms-builder/core';
+import { BlockPreview } from '@/components/BlockPreview';
 
 const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${design.projectName}';
 
@@ -107,22 +114,17 @@ export default async function Page() {
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
-  if (!design) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-xl text-center">
-          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
-          <p className="mt-3 text-gray-600">
-            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (!design) return null;
 
-  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
+  return (
+    <main>
+      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+        <BlockPreview key={block.instanceId} block={block} />
+      ))}
+    </main>
+  );
 }
-`.trim();
+\`.trim();
       
       fs.writeFileSync(path.join(routeDir, 'page.tsx'), pageContent);
     }
@@ -131,7 +133,8 @@ export default async function Page() {
   _generateRootPage(projectPath, projectName) {
     const rootPagePath = path.join(projectPath, 'src', 'app', 'page.tsx');
     const rootPageContent = `
-import { CMSPage, cmsApi } from '@cms-builder/core';
+import { cmsApi } from '@cms-builder/core';
+import { BlockPreview } from '@/components/BlockPreview';
 
 const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${projectName}';
 
@@ -142,20 +145,15 @@ export default async function Page() {
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
-  if (!design) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-xl text-center">
-          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
-          <p className="mt-3 text-gray-600">
-            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (!design) return null;
 
-  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
+  return (
+    <main>
+      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+        <BlockPreview key={block.instanceId} block={block} />
+      ))}
+    </main>
+  );
 }
 `.trim();
     fs.writeFileSync(rootPagePath, rootPageContent);
@@ -167,7 +165,8 @@ export default async function Page() {
 
     const catchAllPath = path.join(catchAllDir, 'page.tsx');
     const catchAllContent = `
-import { CMSPage, cmsApi } from '@cms-builder/core';
+import { cmsApi } from '@cms-builder/core';
+import { BlockPreview } from '@/components/BlockPreview';
 
 const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME || '${projectName}';
 
@@ -179,22 +178,17 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
-  if (!design) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-xl text-center">
-          <h1 className="text-2xl font-semibold">CMS data unavailable</h1>
-          <p className="mt-3 text-gray-600">
-            The project exists, but design data could not be loaded yet. Check API connectivity and project naming configuration.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (!design) return null;
 
-  return <CMSPage design={design as any} route={route} componentInstances={instances as any} />
+  return (
+    <main>
+      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+        <BlockPreview key={block.instanceId} block={block} />
+      ))}
+    </main>
+  );
 }
-`.trim();
+\`.trim();
     fs.writeFileSync(catchAllPath, catchAllContent);
   }
 
@@ -217,8 +211,6 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
     const cssPath = path.join(projectPath, 'src', 'app', 'globals.css');
     const cssContent = "@import \"tailwindcss\";\n" +
       "@source \"../**/*.{ts,tsx,js,jsx,mdx}\";\n" +
-      "@source \"../../node_modules/@cms-builder/core/dist/**/*.{js,mjs,cjs}\";\n" +
-      "@source \"../../node_modules/@cms-builder/core/src/**/*.{ts,tsx,js,jsx}\";\n" +
       "\n@theme {\n" +
       "  --color-primary: var(--primary-color);\n" +
       "  --color-secondary: var(--secondary-color);\n" +
@@ -229,11 +221,20 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
       "    --secondary-color: #1f2937;\n" +
       "  }\n" +
       "}\n\n" +
+      "@layer utilities {\n" +
+      "  .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }\n" +
+      "  .animate-slideUp { animation: slideUp 0.8s ease-out forwards; }\n" +
+      "  .animate-scaleIn { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }\n" +
+      "}\n\n" +
+      "@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }\n" +
+      "@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }\n" +
+      "@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }\n\n" +
       "html,\n" +
       "body {\n" +
       "  height: 100%;\n" +
       "  margin: 0;\n" +
       "  padding: 0;\n" +
+      "  scroll-behavior: smooth;\n" +
       "}\n";
     fs.writeFileSync(cssPath, cssContent);
   }
