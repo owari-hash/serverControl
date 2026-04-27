@@ -45,6 +45,8 @@ const CONTENT_ADMIN_TEXT_FIELD_KEYS = [
   "email",
   "phone",
   "address",
+  "items",
+  "animation",
 ];
 
 /**

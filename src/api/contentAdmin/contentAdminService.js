@@ -44,6 +44,11 @@ async function mergeTextProps(projectName, instanceId, fields) {
       props[key] = n;
       continue;
     }
+    if (key === "items") {
+      if (!Array.isArray(value)) throw new Error(`Field "items" must be an array`);
+      props[key] = value;
+      continue;
+    }
     if (typeof value !== "string") {
       throw new Error(`Field "${key}" must be a string`);
     }
@@ -54,7 +59,7 @@ async function mergeTextProps(projectName, instanceId, fields) {
   doc.updatedAt = new Date();
   await doc.save();
   return doc;
-}
+} 
 
 /**
  * @param {'replace'|'append'} mode
