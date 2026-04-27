@@ -32,6 +32,19 @@ const CONTENT_ADMIN_TEXT_FIELD_KEYS = [
   "align",
   "spacing",
   "fontSize",
+  "brandName",
+  "ctaText",
+  "ctaUrl",
+  "primaryBtnText",
+  "primaryBtnUrl",
+  "secondaryBtnText",
+  "secondaryBtnUrl",
+  "imageUrl",
+  "btnText",
+  "btnUrl",
+  "email",
+  "phone",
+  "address",
 ];
 
 /**
