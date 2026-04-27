@@ -35,7 +35,7 @@ function renderFreeElement(el: FreeEl, accentColor: string, textColor: string) {
     case 'image':
       return wrapLink(el.src || el.value ? <img src={el.src || el.value} alt={el.label} style={{ width: el.width || '100%', height: 'auto', borderRadius: 12 }} /> : <div style={{ width: el.width || '100%', height: 160, background: textColor, opacity: 0.06, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ImageIcon className="w-9 h-9 opacity-20" /></div>)
     case 'card':
-      return <div style={{ background: el.bg || '#fff', borderRadius: el.radius ?? 12, border: `1px solid ${textColor}15`, padding: 16, opacity: 0.9 }}>{el.value || el.label}</div>
+      return <div style={{ background: el.bg || '#fff', borderRadius: el.radius ?? 12, border: \`1px solid \${textColor}15\`, padding: 16, opacity: 0.9 }}>{el.value || el.label}</div>
     default: return null
   }
 }
@@ -148,6 +148,6 @@ export function BlockPreview({ block }: { block: any }) {
     </div>
   )
 }
-\`;
+`;
 
 module.exports = { BLOCK_PREVIEW_TSX };

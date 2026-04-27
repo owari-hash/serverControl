@@ -124,7 +124,7 @@ export default async function Page() {
     </main>
   );
 }
-\`.trim();
+`.trim();
       
       fs.writeFileSync(path.join(routeDir, 'page.tsx'), pageContent);
     }
@@ -188,7 +188,7 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
     </main>
   );
 }
-\`.trim();
+`.trim();
     fs.writeFileSync(catchAllPath, catchAllContent);
   }
 
