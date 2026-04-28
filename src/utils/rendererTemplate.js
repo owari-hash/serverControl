@@ -38,6 +38,14 @@ function wrapLink(el: FreeElement, child: React.ReactNode) {
   )
 }
 
+// ─── Skeleton helpers ─────────────────────────────────────────────────────────
+
+function SkeletonLine({ w = '100%', h = 14, color = '#1e293b', mb = 0 }: {
+  w?: string | number; h?: number; color?: string; mb?: number
+}) {
+  return <div style={{ width: w, height: h, background: color, opacity: 0.15, borderRadius: 4, marginBottom: mb }} />
+}
+
 // ── Renders free elements as REAL HTML content for the live site ──────────────
 
 export function renderFreeElement(el: FreeElement, accentColor: string, textColor: string) {
@@ -330,13 +338,26 @@ export function BlockPreview({ block }: { block: any }) {
 
     return (
       <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: flexAlign, textAlign: align as any, gap: 24 }}>
-        {p.title && <h1 style={{ fontSize: p.titleSize || 48, fontWeight: p.titleWeight || '800', lineHeight: 1.1, margin: 0 }}>{p.title}</h1>}
-        {p.subtitle && <p style={{ fontSize: p.subtitleSize || 18, opacity: 0.7, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.subtitle}</p>}
-        {(p.primaryBtnText || p.btnText) && (
+        {p.title ? (
+          <h1 style={{ fontSize: p.titleSize || 48, fontWeight: p.titleWeight || '800', lineHeight: 1.1, margin: 0 }}>{p.title}</h1>
+        ) : (
+          <div style={{ width: '100%', maxWidth: 500 }}><SkeletonLine h={48} w="90%" color={text} mb={12} /><SkeletonLine h={48} w="60%" color={text} /></div>
+        )}
+        
+        {p.subtitle ? (
+          <p style={{ fontSize: p.subtitleSize || 18, opacity: 0.7, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.subtitle}</p>
+        ) : (
+          <div style={{ width: '100%', maxWidth: 400 }}><SkeletonLine w="100%" color={text} mb={8} /><SkeletonLine w="95%" color={text} mb={8} /><SkeletonLine w="40%" color={text} /></div>
+        )}
+
+        {(p.primaryBtnText || p.btnText) ? (
           <a href={p.primaryBtnUrl || '#'} style={{ display: 'inline-block', padding: \`\${p.btnPaddingY ?? 12}px \${p.btnPaddingX ?? 32}px\`, background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
             {p.primaryBtnText || p.btnText}
           </a>
+        ) : (
+          <div style={{ width: 140, height: 46, background: accent, borderRadius: p.btnRadius ?? 10, opacity: 0.2 }} />
         )}
+
         {displayImg && (
           <img src={displayImg} alt={p.title || ''} style={{ width: '100%', maxWidth: 520, borderRadius: 20, marginTop: 8, objectFit: 'cover' }} />
         )}
@@ -355,9 +376,9 @@ export function BlockPreview({ block }: { block: any }) {
         {displayImg && <div style={{ flex: 1, minWidth: 280, maxWidth: 480 }}><img src={displayImg} alt={p.title || ''} style={{ width: '100%', borderRadius: 24, display: 'block' }} /></div>}
         <div style={{ flex: 1.2, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {p.title && <h2 style={{ fontSize: p.titleSize || 36, fontWeight: '700', margin: 0 }}>{p.title}</h2>}
-          {p.description && <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.8, margin: 0 }}>{p.description}</p>}
+          {(p.description || p.subtitle) && <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.8, margin: 0 }}>{p.description || p.subtitle}</p>}
           {(p.btnText || p.primaryBtnText) && (
-            <a href={p.btnUrl || '#'} style={{ display: 'inline-block', width: 'fit-content', padding: '10px 24px', border: \`2px solid \${accent}\`, color: accent, borderRadius: p.btnRadius ?? 10, fontWeight: 600, textDecoration: 'none' }}>
+            <a href={p.btnUrl || p.primaryBtnUrl || '#'} style={{ display: 'inline-block', width: 'fit-content', padding: '10px 24px', border: \`2px solid \${accent}\`, color: accent, borderRadius: p.btnRadius ?? 10, fontWeight: 600, textDecoration: 'none' }}>
               {p.btnText || p.primaryBtnText}
             </a>
           )}
@@ -371,18 +392,54 @@ export function BlockPreview({ block }: { block: any }) {
     const cols = p.columns || 3
     const cardBg = p.cardBg || (bg === '#ffffff' ? '#f8fafc' : \`\${bg}15\`)
     const items = Array.isArray(p.items) ? p.items : []
+    const align = p.align || 'center'
+    const flexAlign = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'
 
     return (
-      <section className={animationClass} style={{ ...wrapStyle, textAlign: 'center' }}>
-        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', marginBottom: 40, marginTop: 0 }}>{p.title}</h2>}
-        {items.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: \`repeat(auto-fit, minmax(260px, 1fr))\`, gap: 24 }}>
+      <section className={animationClass} style={{ ...wrapStyle, textAlign: align as any, display: 'flex', flexDirection: 'column', alignItems: flexAlign }}>
+        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', marginBottom: p.subtitle ? 12 : 40, marginTop: 0 }}>{p.title}</h2>}
+        {(p.subtitle || p.description) && (
+          <p style={{ fontSize: 18, opacity: 0.7, maxWidth: 800, marginBottom: 40, marginTop: 0, marginLeft: align === 'center' ? 'auto' : 0, marginRight: align === 'center' ? 'auto' : 0 }}>
+            {p.subtitle || p.description}
+          </p>
+        )}
+        
+        {items.length > 0 ? (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: cols > 1 ? \`repeat(\${cols}, minmax(0, 1fr))\` : '1fr',
+            gap: 24,
+            width: '100%'
+          }}>
             {items.map((item: any, i: number) => (
               <div key={i} style={{ background: cardBg, padding: 32, borderRadius: p.cardRadius ?? 20, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {item.imageUrl && <img src={item.imageUrl} alt={item.title || ''} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }} />}
-                {item.title && <h3 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{item.title}</h3>}
-                {item.description && <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{item.description}</p>}
-                {item.price && <div style={{ fontSize: 22, fontWeight: 800, color: accent }}>{item.price}</div>}
+                {item.imageUrl && <img src={item.imageUrl} alt={item.title || ''} style={{ width: '100%', height: 180, borderRadius: 12, objectFit: 'cover', marginBottom: 8 }} />}
+                {item.title ? (
+                   <h3 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{item.title}</h3>
+                ) : (
+                   <SkeletonLine w="70%" h={20} color={text} />
+                )}
+                {item.description ? (
+                   <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{item.description}</p>
+                ) : (
+                   <div style={{ width: '100%' }}><SkeletonLine w="100%" color={text} mb={6} /><SkeletonLine w="40%" color={text} /></div>
+                )}
+                {item.price && <div style={{ fontSize: 22, fontWeight: 800, color: accent, marginTop: 'auto' }}>{item.price}</div>}
+                {item.btnText && (
+                   <a href={item.btnUrl || '#'} style={{ display: 'inline-block', padding: '10px 20px', background: accent, color: '#fff', borderRadius: 8, fontWeight: 600, textDecoration: 'none', fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+                     {item.btnText}
+                   </a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: \`repeat(\${cols}, minmax(0, 1fr))\`, gap: 24, width: '100%' }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{ background: cardBg, padding: 32, borderRadius: p.cardRadius ?? 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ width: '100%', height: 140, background: text, opacity: 0.05, borderRadius: 12 }} />
+                <SkeletonLine w="60%" h={20} color={text} />
+                <div style={{ width: '100%' }}><SkeletonLine w="100%" color={text} mb={6} /><SkeletonLine w="80%" color={text} /></div>
               </div>
             ))}
           </div>
@@ -392,14 +449,46 @@ export function BlockPreview({ block }: { block: any }) {
     )
   }
 
-  if (type === 'promo') {
-    const flexAlign = (p.align === 'left') ? 'flex-start' : (p.align === 'right') ? 'flex-end' : 'center'
+  if (type === 'slider') {
+    const items = Array.isArray(p.items) ? p.items : []
     return (
-      <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: flexAlign, textAlign: (p.align || 'center') as any, gap: 20 }}>
+      <section className={animationClass} style={{ ...wrapStyle, paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0, position: 'relative', overflow: 'hidden', height: 600 }}>
+        {items.length > 0 ? (
+           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+              <img 
+                src={items[0].imageUrl} 
+                alt={items[0].title || ''} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: 40, color: '#fff' }}>
+                 <h2 style={{ fontSize: 48, fontWeight: 800, margin: 0, maxWidth: 800 }}>{items[0].title}</h2>
+                 <p style={{ fontSize: 20, opacity: 0.9, maxWidth: 600, marginTop: 16 }}>{items[0].description}</p>
+                 <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+                   <div style={{ width: 12, height: 12, borderRadius: 99, background: '#fff' }} />
+                   <div style={{ width: 12, height: 12, borderRadius: 99, background: '#fff', opacity: 0.3 }} />
+                   <div style={{ width: 12, height: 12, borderRadius: 99, background: '#fff', opacity: 0.3 }} />
+                 </div>
+              </div>
+           </div>
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <SkeletonLine w={300} h={40} color={text} />
+          </div>
+        )}
+        {freeEls}
+      </section>
+    )
+  }
+
+  if (type === 'promo') {
+    const align = p.align || 'center'
+    const flexAlign = (align === 'left') ? 'flex-start' : (align === 'right') ? 'flex-end' : 'center'
+    return (
+      <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: flexAlign, textAlign: align as any, gap: 20 }}>
         {p.title && <h2 style={{ fontSize: p.titleSize || 36, fontWeight: '800', margin: 0 }}>{p.title}</h2>}
-        {p.description && <p style={{ fontSize: 18, opacity: 0.8, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.description}</p>}
+        {(p.subtitle || p.description) && <p style={{ fontSize: 18, opacity: 0.8, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.subtitle || p.description}</p>}
         {(p.btnText || p.primaryBtnText) && (
-          <a href={p.btnUrl || '#'} style={{ display: 'inline-block', padding: '14px 36px', background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 12, fontWeight: 700, textDecoration: 'none', fontSize: 16, marginTop: 8 }}>
+          <a href={p.btnUrl || p.primaryBtnUrl || '#'} style={{ display: 'inline-block', padding: '14px 36px', background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 12, fontWeight: 700, textDecoration: 'none', fontSize: 16, marginTop: 8 }}>
             {p.btnText || p.primaryBtnText}
           </a>
         )}
@@ -411,14 +500,23 @@ export function BlockPreview({ block }: { block: any }) {
   if (type === 'contact') {
     return (
       <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', margin: 0 }}>{p.title}</h2>}
+        {p.title ? (
+          <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', margin: 0 }}>{p.title}</h2>
+        ) : (
+          <SkeletonLine w={200} h={34} color={text} />
+        )}
+        {(p.subtitle || p.description) ? (
+          <p style={{ opacity: 0.7, maxWidth: 600, textAlign: 'center', margin: 0 }}>{p.subtitle || p.description}</p>
+        ) : (
+          <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}><SkeletonLine w="100%" color={text} mb={6} /><SkeletonLine w="60%" color={text} /></div>
+        )}
         {p.showForm !== false && (
           <div style={{ width: '100%', maxWidth: 600, background: p.cardBg || '#f8fafc', padding: 40, borderRadius: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-             <input type="text" placeholder="Name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
-             <input type="email" placeholder="Email" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
-             <textarea placeholder="Message" rows={4} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, resize: 'none', boxSizing: 'border-box' }} />
+             <input type="text" placeholder="Нэр" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
+             <input type="email" placeholder="И-мэйл" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
+             <textarea placeholder="Мессеж" rows={4} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, resize: 'none', boxSizing: 'border-box' }} />
              <button style={{ width: '100%', padding: '14px', background: accent, color: '#fff', borderRadius: 10, fontWeight: 700, border: 'none', fontSize: 15, cursor: 'pointer' }}>
-               {p.submitBtnText || 'Send Message'}
+                Илгээх
              </button>
           </div>
         )}
@@ -428,11 +526,23 @@ export function BlockPreview({ block }: { block: any }) {
   }
 
   if (type === 'footer') {
+    const align = p.align || 'center'
+    const flexAlign = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'
     return (
-      <footer className={animationClass} style={{ ...wrapStyle, borderTop: \`1px solid \${text}15\`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-        {(p.brandName || p.title) && <div style={{ fontWeight: 800, fontSize: 24 }}>{p.brandName || p.title}</div>}
-        {p.description && <p style={{ opacity: 0.6, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.description}</p>}
-        <div style={{ fontSize: 14, opacity: 0.5, marginTop: 8 }}>© {new Date().getFullYear()} {p.copyright || 'All rights reserved.'}</div>
+      <footer className={animationClass} style={{ ...wrapStyle, borderTop: \`1px solid \${text}15\`, textAlign: align as any, display: 'flex', flexDirection: 'column', alignItems: flexAlign, gap: 20 }}>
+        {(p.brandName || p.title) ? (
+          <div style={{ fontWeight: 800, fontSize: 24 }}>{p.brandName || p.title}</div>
+        ) : (
+          <SkeletonLine w={120} h={24} color={text} />
+        )}
+        {(p.description || p.subtitle) && <p style={{ opacity: 0.6, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.description || p.subtitle}</p>}
+        <div style={{ fontSize: 14, opacity: 0.5, marginTop: 8 }}>
+          {p.copyright ? (
+            \`© \${new Date().getFullYear()} \${p.copyright}\`
+          ) : (
+            <SkeletonLine w={180} h={14} color={text} />
+          )}
+        </div>
         {freeEls}
       </footer>
     )
