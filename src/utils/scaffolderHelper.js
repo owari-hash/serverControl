@@ -109,16 +109,41 @@ const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME
 
 export default async function Page() {
   const route = "${page.route}";
-  const [design, instances] = await Promise.all([
+  const [design, all] = await Promise.all([
     cmsApi.getSiteContent(PROJECT).catch(() => null),
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
   if (!design) return null;
 
+  // Reconstruct tree: children with slot='free' go into parent's props._elements
+  const parents = all.filter((c: any) => !c.parentId);
+  const children = all.filter((c: any) => c.parentId && c.slot === 'free');
+  
+  const reconstructed = parents.map((p: any) => {
+    const myChildren = children
+      .filter((c: any) => c.parentId === p.instanceId)
+      .sort((a: any, b: any) => a.order - b.order)
+      .map((c: any) => ({
+        id: c.instanceId,
+        type: c.componentType.replace(/^free_/, ''),
+        ...c.props
+      }));
+      
+    return {
+      ...p,
+      props: {
+        ...p.props,
+        _elements: myChildren
+      }
+    };
+  });
+
+  const sorted = reconstructed.sort((a: any, b: any) => a.order - b.order);
+
   return (
     <main>
-      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+      {sorted.map((block: any) => (
         <BlockPreview key={block.instanceId} block={block} />
       ))}
     </main>
@@ -140,16 +165,41 @@ const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME
 
 export default async function Page() {
   const route = '/';
-  const [design, instances] = await Promise.all([
+  const [design, all] = await Promise.all([
     cmsApi.getSiteContent(PROJECT).catch(() => null),
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
   if (!design) return null;
 
+  // Reconstruct tree: children with slot='free' go into parent's props._elements
+  const parents = all.filter((c: any) => !c.parentId);
+  const children = all.filter((c: any) => c.parentId && c.slot === 'free');
+  
+  const reconstructed = parents.map((p: any) => {
+    const myChildren = children
+      .filter((c: any) => c.parentId === p.instanceId)
+      .sort((a: any, b: any) => a.order - b.order)
+      .map((c: any) => ({
+        id: c.instanceId,
+        type: c.componentType.replace(/^free_/, ''),
+        ...c.props
+      }));
+      
+    return {
+      ...p,
+      props: {
+        ...p.props,
+        _elements: myChildren
+      }
+    };
+  });
+
+  const sorted = reconstructed.sort((a: any, b: any) => a.order - b.order);
+
   return (
     <main>
-      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+      {sorted.map((block: any) => (
         <BlockPreview key={block.instanceId} block={block} />
       ))}
     </main>
@@ -173,16 +223,41 @@ const PROJECT = process.env.NEXT_PUBLIC_PROJECT_NAME || process.env.PROJECT_NAME
 export default async function CatchAllPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
   const route = '/' + (slug || []).join('/');
-  const [design, instances] = await Promise.all([
+  const [design, all] = await Promise.all([
     cmsApi.getSiteContent(PROJECT).catch(() => null),
     cmsApi.getPageComponents(PROJECT, route).catch(() => []),
   ]);
 
   if (!design) return null;
 
+  // Reconstruct tree: children with slot='free' go into parent's props._elements
+  const parents = all.filter((c: any) => !c.parentId);
+  const children = all.filter((c: any) => c.parentId && c.slot === 'free');
+  
+  const reconstructed = parents.map((p: any) => {
+    const myChildren = children
+      .filter((c: any) => c.parentId === p.instanceId)
+      .sort((a: any, b: any) => a.order - b.order)
+      .map((c: any) => ({
+        id: c.instanceId,
+        type: c.componentType.replace(/^free_/, ''),
+        ...c.props
+      }));
+      
+    return {
+      ...p,
+      props: {
+        ...p.props,
+        _elements: myChildren
+      }
+    };
+  });
+
+  const sorted = reconstructed.sort((a: any, b: any) => a.order - b.order);
+
   return (
     <main>
-      {instances.sort((a: any, b: any) => a.order - b.order).map((block: any) => (
+      {sorted.map((block: any) => (
         <BlockPreview key={block.instanceId} block={block} />
       ))}
     </main>
