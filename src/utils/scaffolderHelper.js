@@ -134,7 +134,7 @@ export default async function Page() {
       ...p,
       props: {
         ...p.props,
-        _elements: myChildren
+        _elements: (p.props?._elements && p.props._elements.length > 0) ? p.props._elements : myChildren
       }
     };
   });
@@ -190,7 +190,7 @@ export default async function Page() {
       ...p,
       props: {
         ...p.props,
-        _elements: myChildren
+        _elements: (p.props?._elements && p.props._elements.length > 0) ? p.props._elements : myChildren
       }
     };
   });
@@ -248,7 +248,7 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
       ...p,
       props: {
         ...p.props,
-        _elements: myChildren
+        _elements: (p.props?._elements && p.props._elements.length > 0) ? p.props._elements : myChildren
       }
     };
   });
