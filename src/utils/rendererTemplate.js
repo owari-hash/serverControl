@@ -93,14 +93,47 @@ export function BlockPreview({ block }: { block: any }) {
   if (type === 'hero') {
     const align = p.align || 'center'
     const flexAlign = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'
+    const isCenter = align === 'center'
     
-    const mediaEl = p.imageUrl ? <img src={p.imageUrl} style={{ maxWidth: '100%', borderRadius: 24, boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', marginTop: 48 }} /> : null
-    const titleEl = p.title ? <h1 style={{ fontSize: p.titleSize || 56, fontWeight: 900, lineHeight: 1.05, marginBottom: 24, letterSpacing: '-0.04em' }}>{p.title}</h1> : null
-    const subtitleEl = p.subtitle ? <p style={{ fontSize: 20, opacity: 0.7, marginBottom: 40, maxWidth: 640, lineHeight: 1.6 }}>{p.subtitle}</p> : null
+    const mediaEl = p.imageUrl ? (
+      <div style={{ marginTop: 48, width: '100%', display: 'flex', justifyContent: flexAlign }}>
+        <img src={p.imageUrl} style={{ maxWidth: '90%', borderRadius: 32, boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)' }} />
+      </div>
+    ) : null
+
+    const titleEl = p.title ? (
+      <h1 style={{ 
+        fontSize: p.titleSize || 64, 
+        fontWeight: 900, 
+        lineHeight: 1.05, 
+        marginBottom: 28, 
+        letterSpacing: '-0.04em',
+        maxWidth: 900,
+        marginLeft: isCenter ? 'auto' : 0,
+        marginRight: isCenter ? 'auto' : 0
+      }}>
+        {p.title}
+      </h1>
+    ) : null
+
+    const subtitleEl = p.subtitle ? (
+      <p style={{ 
+        fontSize: 20, 
+        opacity: 0.7, 
+        marginBottom: 44, 
+        maxWidth: 640, 
+        lineHeight: 1.6,
+        marginLeft: isCenter ? 'auto' : 0,
+        marginRight: isCenter ? 'auto' : 0
+      }}>
+        {p.subtitle}
+      </p>
+    ) : null
+
     const ctaEl = (p.primaryBtnText || p.secondaryBtnText) ? (
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: flexAlign }}>
-        {p.primaryBtnText && <a href={p.primaryBtnUrl} style={{ background: accent, color: '#fff', padding: '16px 36px', borderRadius: 14, fontWeight: 700, textDecoration: 'none', boxShadow: \`0 10px 20px \${accent}30\` }}>{p.primaryBtnText}</a>}
-        {p.secondaryBtnText && <a href={p.secondaryBtnUrl} style={{ border: \`2px solid \${text}20\`, color: 'inherit', padding: '16px 36px', borderRadius: 14, fontWeight: 700, textDecoration: 'none', background: 'rgba(255,255,255,0.05)' }}>{p.secondaryBtnText}</a>}
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: flexAlign }}>
+        {p.primaryBtnText && <a href={p.primaryBtnUrl} style={{ background: accent, color: '#fff', padding: '18px 42px', borderRadius: 16, fontWeight: 700, textDecoration: 'none', boxShadow: \`0 12px 24px \${accent}40\`, transition: 'transform 0.2s' }}>{p.primaryBtnText}</a>}
+        {p.secondaryBtnText && <a href={p.secondaryBtnUrl} style={{ border: \`2px solid \${text}30\`, color: 'inherit', padding: '18px 42px', borderRadius: 16, fontWeight: 700, textDecoration: 'none', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>{p.secondaryBtnText}</a>}
       </div>
     ) : null
 
@@ -119,18 +152,18 @@ export function BlockPreview({ block }: { block: any }) {
     const dir = p.align === 'right' ? 'row-reverse' : 'row'
     const imageEl = p.imageUrl ? (
       <div style={{ flex: 1, position: 'relative' }}>
-        <img src={p.imageUrl} style={{ width: '100%', height: 'auto', borderRadius: 24, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+        <img src={p.imageUrl} style={{ width: '100%', height: 'auto', borderRadius: 28, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)' }} />
       </div>
     ) : null
 
     return (
       <section style={wrap} className={animationClass}>
-        <div style={{ display: 'flex', gap: 64, alignItems: 'center', flexDirection: dir as any }}>
+        <div style={{ display: 'flex', gap: 72, alignItems: 'center', flexDirection: dir as any }}>
           {imageEl}
           <div style={{ flex: 1.2 }}>
-            {p.title && <h2 style={{ fontSize: 40, fontWeight: 900, marginBottom: 20, letterSpacing: '-0.02em' }}>{p.title}</h2>}
-            {p.description && <p style={{ fontSize: 18, opacity: 0.7, lineHeight: 1.7, marginBottom: 32 }}>{p.description}</p>}
-            {p.btnText && <a href={p.btnUrl} style={{ display: 'inline-block', background: accent, color: '#fff', padding: '12px 28px', borderRadius: 12, fontWeight: 700, textDecoration: 'none' }}>{p.btnText}</a>}
+            {p.title && <h2 style={{ fontSize: 44, fontWeight: 900, marginBottom: 24, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{p.title}</h2>}
+            {p.description && <p style={{ fontSize: 19, opacity: 0.7, lineHeight: 1.7, marginBottom: 40 }}>{p.description}</p>}
+            {p.btnText && <a href={p.btnUrl} style={{ display: 'inline-block', background: accent, color: '#fff', padding: '14px 32px', borderRadius: 14, fontWeight: 700, textDecoration: 'none', boxShadow: \`0 8px 16px \${accent}30\` }}>{p.btnText}</a>}
           </div>
         </div>
         {freeEls}
@@ -141,15 +174,15 @@ export function BlockPreview({ block }: { block: any }) {
   if (['services', 'features', 'products', 'pricing'].includes(type)) {
     const items = Array.isArray(p.items) ? p.items : []
     const cols = p.columns || 3
-    const titleEl = p.title ? <h2 style={{ fontSize: 40, fontWeight: 900, marginBottom: 16, letterSpacing: '-0.02em' }}>{p.title}</h2> : null
-    const subtitleEl = p.subtitle ? <p style={{ fontSize: 18, opacity: 0.6, marginBottom: 56, maxWidth: 700, marginLeft: 'auto', marginRight: 'auto' }}>{p.subtitle}</p> : null
+    const titleEl = p.title ? <h2 style={{ fontSize: 48, fontWeight: 900, marginBottom: 20, letterSpacing: '-0.03em' }}>{p.title}</h2> : null
+    const subtitleEl = p.subtitle ? <p style={{ fontSize: 20, opacity: 0.6, marginBottom: 64, maxWidth: 800, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>{p.subtitle}</p> : null
 
     const gridItems = items.map((item: any, i: number) => (
-      <div key={i} style={{ padding: 32, borderRadius: 24, border: \`1px solid \${text}10\`, background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', transition: 'transform 0.3s ease', textAlign: 'left' }}>
-        {item.imageUrl && <img src={item.imageUrl} style={{ width: 56, height: 56, borderRadius: 14, marginBottom: 24, objectFit: 'cover' }} />}
-        <h3 style={{ fontWeight: 800, fontSize: 22, marginBottom: 12 }}>{item.title}</h3>
-        <p style={{ fontSize: 16, opacity: 0.6, lineHeight: 1.6 }}>{item.description}</p>
-        {item.price && <div style={{ marginTop: 24, fontSize: 24, fontWeight: 900, color: accent }}>{item.price}</div>}
+      <div key={i} style={{ padding: 40, borderRadius: 28, border: \`1px solid \${text}12\`, background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(12px)', transition: 'all 0.3s ease', textAlign: 'left', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+        {item.imageUrl && <img src={item.imageUrl} style={{ width: 64, height: 64, borderRadius: 18, marginBottom: 28, objectFit: 'cover', boxShadow: '0 8px 16px rgba(0,0,0,0.05)' }} />}
+        <h3 style={{ fontWeight: 800, fontSize: 24, marginBottom: 14, letterSpacing: '-0.01em' }}>{item.title}</h3>
+        <p style={{ fontSize: 17, opacity: 0.6, lineHeight: 1.6 }}>{item.description}</p>
+        {item.price && <div style={{ marginTop: 28, fontSize: 28, fontWeight: 900, color: accent, letterSpacing: '-0.02em' }}>{item.price}</div>}
       </div>
     ))
 
