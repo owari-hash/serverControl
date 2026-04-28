@@ -1,9 +1,8 @@
 
 const BLOCK_PREVIEW_TSX = `
 'use client'
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { Image as ImageIcon, Package, Copy, Trash2, MoveVertical, ArrowUp, ArrowDown, Move } from 'lucide-react'
 
 function pxFromSizeProp(v: unknown, fallback: number): number {
   if (typeof v === 'number' && Number.isFinite(v)) return v
@@ -14,32 +13,13 @@ function pxFromSizeProp(v: unknown, fallback: number): number {
   return fallback
 }
 
-// ─── Skeleton helpers ─────────────────────────────────────────────────────────
-
-function SkeletonLine({ w = '100%', h = 14, color = '#1e293b', mb = 0 }: {
-  w?: string | number; h?: number; color?: string; mb?: number
-}) {
-  return <div style={{ width: w, height: h, background: color, opacity: 0.2, borderRadius: 4, marginBottom: mb }} />
-}
-
-// ─── Free elements renderer ───────────────────────────────────────────────────
-
 interface FreeElement {
   id: string; type: string; label: string; value?: string
   color?: string; bg?: string; radius?: number; size?: number
-  width?: string; height?: number; placeholder?: string; align?: string
+  width?: string | number; height?: number; placeholder?: string; align?: string
   src?: string
   links?: unknown; href?: string; isExternal?: boolean
   x?: number; y?: number
-}
-
-function wrapLink(el: FreeElement, child: React.ReactNode) {
-  if (!el.href) return child
-  return (
-    <a href={el.href} target={el.isExternal ? '_blank' : undefined} rel={el.isExternal ? 'noopener noreferrer' : undefined} style={{ textDecoration: 'none' }}>
-      {child}
-    </a>
-  )
 }
 
 function resolveDisplayImageUrl(src: string) {
@@ -49,44 +29,66 @@ function resolveDisplayImageUrl(src: string) {
   return \`\${baseUrl}/uploads/\${src}\`;
 }
 
+function wrapLink(el: FreeElement, child: React.ReactNode) {
+  if (!el.href) return <>{child}</>
+  return (
+    <a href={el.href} target={el.isExternal ? '_blank' : undefined} rel={el.isExternal ? 'noopener noreferrer' : undefined} style={{ textDecoration: 'none', display: 'contents' }}>
+      {child}
+    </a>
+  )
+}
+
+// ── Renders free elements as REAL HTML content for the live site ──────────────
+
 export function renderFreeElement(el: FreeElement, accentColor: string, textColor: string) {
   switch (el.type) {
     case 'text':
-      const textH = el.height || (el.size ? el.size * 0.7 : 14)
-      return wrapLink(el, 
-        <div style={{
-          width: el.width || '80%',
-          height: textH,
-          background: el.color || textColor,
-          opacity: 0.2,
-          borderRadius: 4,
-          margin: '4px 0'
-        }} />
+      return wrapLink(el,
+        <p style={{
+          fontSize: el.size || 16,
+          color: el.color || textColor,
+          margin: '4px 0',
+          lineHeight: 1.6,
+        }}>
+          {el.value || el.label || ''}
+        </p>
       )
 
     case 'button':
       return wrapLink(el,
-        <div style={{
-          width: el.width || 140,
-          height: el.height || 46,
+        <span style={{
+          display: 'inline-block',
+          padding: '10px 24px',
           background: el.bg || accentColor,
+          color: '#fff',
           borderRadius: el.radius ?? 10,
-          opacity: 0.9,
-          display: 'inline-block'
-        }} />
+          fontWeight: 700,
+          fontSize: el.size || 14,
+          cursor: 'pointer',
+          textDecoration: 'none',
+          lineHeight: 1,
+        }}>
+          {el.label || el.value || 'Button'}
+        </span>
       )
 
     case 'input':
       return (
-        <div style={{
-          width: el.width || 200,
-          height: el.height || 46,
-          background: el.bg || textColor,
-          opacity: 0.08,
-          borderRadius: el.radius ?? 8,
-          border: \`1px solid \${textColor}22\`,
-          display: 'inline-block'
-        }} />
+        <input
+          type="text"
+          placeholder={el.placeholder || el.label || ''}
+          style={{
+            width: el.width || '100%',
+            height: el.height || 46,
+            padding: '0 14px',
+            borderRadius: el.radius ?? 8,
+            border: \`1px solid \${textColor}33\`,
+            fontSize: el.size || 14,
+            background: el.bg || '#fff',
+            color: textColor,
+            boxSizing: 'border-box',
+          }}
+        />
       )
 
     case 'image': {
@@ -96,45 +98,33 @@ export function renderFreeElement(el: FreeElement, accentColor: string, textColo
           <img
             src={displaySrc}
             alt={el.label || ''}
-            referrerPolicy="no-referrer"
             style={{
-              width: (el.width as string | number | undefined) || '100%',
-              maxHeight: el.height || 160,
-              height: 'auto',
-              objectFit: 'contain',
-              borderRadius: 12,
+              width: el.width || '100%',
+              maxWidth: '100%',
+              height: el.height ? el.height : 'auto',
+              maxHeight: el.height || 320,
+              objectFit: 'cover',
+              borderRadius: el.radius ?? 12,
               display: 'block',
             }}
-          />,
+          />
         )
       }
-      return wrapLink(el,
-        <div style={{
-          width: el.width || '100%',
-          height: el.height || 160,
-          background: textColor,
-          opacity: 0.06,
-          borderRadius: 12,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <ImageIcon style={{ width: 36, height: 36, opacity: 0.25, color: textColor }} />
-        </div>
-      )
+      return null
     }
 
     case 'card':
       return wrapLink(el,
         <div style={{
           width: el.width || '100%',
-          height: el.height || 120,
+          minHeight: el.height || 120,
           background: el.bg || '#ffffff',
           borderRadius: el.radius ?? 12,
           border: \`1px solid \${textColor}15\`,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          opacity: 0.8,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          padding: 24,
         }}>
-          <div style={{ width: '40%', height: 12, background: textColor, opacity: 0.15, borderRadius: 4 }} />
+          {el.value && <p style={{ color: textColor, opacity: 0.8, fontSize: 15 }}>{el.value}</p>}
         </div>
       )
 
@@ -142,21 +132,22 @@ export function renderFreeElement(el: FreeElement, accentColor: string, textColo
       return (
         <div style={{
           width: el.width || '100%',
-          height: el.height || 80,
-          background: el.bg || textColor,
-          opacity: 0.03,
+          minHeight: el.height || 80,
+          background: el.bg || 'transparent',
           borderRadius: 8,
-          border: \`1px dashed \${textColor}33\`,
-        }} />
+        }}>
+          {el.value && <p style={{ color: textColor, opacity: 0.8 }}>{el.value}</p>}
+        </div>
       )
 
     case 'divider':
       return (
-        <div style={{
+        <hr style={{
           width: el.width || '100%',
           height: el.height || 1,
           background: el.color || textColor,
           opacity: 0.15,
+          border: 'none',
           borderRadius: 99,
           margin: '12px 0',
         }} />
@@ -164,39 +155,43 @@ export function renderFreeElement(el: FreeElement, accentColor: string, textColo
 
     case 'badge':
       return wrapLink(el,
-        <div style={{ display: 'flex' }}>
-          <div style={{
-            width: el.width || 60,
-            height: 20,
-            background: el.bg || accentColor,
-            borderRadius: el.radius ?? 999,
-            opacity: 0.8,
-            display: 'inline-block',
-          }} />
-        </div>
+        <span style={{
+          display: 'inline-block',
+          padding: '3px 12px',
+          background: el.bg || accentColor,
+          color: '#fff',
+          borderRadius: el.radius ?? 999,
+          fontSize: el.size || 12,
+          fontWeight: 600,
+          opacity: 0.9,
+        }}>
+          {el.label || el.value || ''}
+        </span>
       )
 
-    case 'menu':
+    case 'menu': {
       const navLinks = Array.isArray(el.links) ? el.links : []
-      if (navLinks.length === 0) {
-        return <span style={{ fontSize: 11, color: textColor, opacity: 0.35, fontStyle: 'italic' }}>Цэс хоосон</span>
-      }
+      if (navLinks.length === 0) return null
       return (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: el.align as any || 'center' }}>
+        <nav style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', justifyContent: (el.align as any) || 'center' }}>
           {navLinks.map((link: any, i: number) => (
-            <div
+            <a
               key={i}
+              href={link.href || '#'}
               style={{
-                width: 48,
-                height: el.size ? el.size * 0.7 : 12,
-                background: el.color || textColor,
-                opacity: 0.2,
-                borderRadius: 4,
+                fontSize: el.size || 14,
+                fontWeight: 600,
+                color: el.color || textColor,
+                textDecoration: 'none',
+                opacity: 0.88,
               }}
-            />
+            >
+              {link.label || link.href || 'Link'}
+            </a>
           ))}
-        </div>
+        </nav>
       )
+    }
 
     default:
       return null
@@ -209,21 +204,28 @@ function FreeElementsRenderer({ elements, accentColor, textColor }: {
   if (!elements || elements.length === 0) return null
 
   return (
-    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, width: '100%', position: 'relative' }}>
-      {elements.map((el) => (
-        <div
-          key={el.id}
-          style={{
-            position: (el.x !== undefined || el.y !== undefined) ? 'absolute' : 'relative',
-            left: el.x,
-            top: el.y,
-            zIndex: (el.x !== undefined || el.y !== undefined) ? 10 : 1,
-            width: el.width || (el.type === 'button' ? '140px' : el.type === 'input' ? '200px' : el.type === 'badge' ? '60px' : el.type === 'text' ? '80%' : undefined),
-          }}
-        >
-          {renderFreeElement(el, accentColor, textColor)}
-        </div>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', alignItems: 'flex-start' }}>
+      {elements.map((el) => {
+        const rendered = renderFreeElement(el, accentColor, textColor)
+        if (!rendered) return null
+        const isAbsolute = el.x !== undefined || el.y !== undefined
+        return (
+          <div
+            key={el.id}
+            style={isAbsolute ? {
+              position: 'absolute',
+              left: el.x,
+              top: el.y,
+              zIndex: 10,
+            } : {
+              width: ['section', 'card', 'input', 'divider', 'menu'].includes(el.type) ? (el.width || '100%') : 'fit-content',
+              maxWidth: '100%',
+            }}
+          >
+            {rendered}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -246,7 +248,9 @@ export function BlockPreview({ block }: { block: any }) {
     transition: 'all 0.3s ease',
   }
 
-  const freeEls = <FreeElementsRenderer elements={elements} accentColor={accent} textColor={text} />
+  const freeEls = elements.length > 0
+    ? <FreeElementsRenderer elements={elements} accentColor={accent} textColor={text} />
+    : null
 
 
   if (type === 'header') {
@@ -265,8 +269,7 @@ export function BlockPreview({ block }: { block: any }) {
     const rowIt = iMap[String(p.rowItems || 'center')] || 'center'
     const isStack = p.headerLayout === 'stack'
     const ctaSep = p.ctaWithNav === false
-    const brStack =
-      p.stackBrandAlign === 'end' ? 'flex-end' : p.stackBrandAlign === 'start' ? 'flex-start' : 'center'
+    const brStack = p.stackBrandAlign === 'end' ? 'flex-end' : p.stackBrandAlign === 'start' ? 'flex-start' : 'center'
     const navStack = jMap[String(p.stackNavJustify || 'center')] || 'center'
     const gap = typeof p.contentGap === 'number' && p.contentGap > 0 ? p.contentGap : 8
     
@@ -276,13 +279,7 @@ export function BlockPreview({ block }: { block: any }) {
           <a
             key={i}
             href={link.href || '#'}
-            style={{
-              fontSize: navPx,
-              fontWeight: 600,
-              color: text,
-              opacity: 0.88,
-              textDecoration: 'none'
-            }}
+            style={{ fontSize: navPx, fontWeight: 600, color: text, opacity: 0.88, textDecoration: 'none' }}
           >
             {String(link.label || link.href || 'Link')}
           </a>
@@ -290,12 +287,12 @@ export function BlockPreview({ block }: { block: any }) {
       </nav>
     )
 
-    const ctaBlock = p.ctaText ? <a href={p.ctaUrl || '#'} style={{ padding: '8px 20px', background: accent, borderRadius: p.btnRadius ?? 8, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>{p.ctaText}</a> : null
-    const titleBlock = (p.title || p.brandName) ? (
-      <div style={{ fontWeight: 800, fontSize: titlePx, color: text, letterSpacing: '-0.02em' }}>
-        {String(p.title || p.brandName)}
-      </div>
-    ) : null
+    const ctaBlock = p.ctaText
+      ? <a href={p.ctaUrl || '#'} style={{ padding: '8px 20px', background: accent, borderRadius: p.btnRadius ?? 8, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>{p.ctaText}</a>
+      : null
+    const titleBlock = (p.title || p.brandName)
+      ? <div style={{ fontWeight: 800, fontSize: titlePx, color: text, letterSpacing: '-0.02em' }}>{String(p.title || p.brandName)}</div>
+      : null
 
     if (isStack) {
       return (
@@ -308,7 +305,7 @@ export function BlockPreview({ block }: { block: any }) {
               </div>
               {ctaSep && <div style={{ display: 'flex', justifyContent: 'center' }}>{ctaBlock}</div>}
            </div>
-           {elements.length > 0 && freeEls}
+           {freeEls}
         </header>
       )
     }
@@ -321,7 +318,7 @@ export function BlockPreview({ block }: { block: any }) {
           {!ctaSep && ctaBlock}
         </div>
         {ctaSep && ctaBlock}
-        {elements.length > 0 && freeEls}
+        {freeEls}
       </header>
     )
   }
@@ -333,14 +330,16 @@ export function BlockPreview({ block }: { block: any }) {
 
     return (
       <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: flexAlign, textAlign: align as any, gap: 24 }}>
-        {p.title && <h1 style={{ fontSize: p.titleSize || 48, fontWeight: p.titleWeight || '800', lineHeight: 1.1 }}>{p.title}</h1>}
-        {p.subtitle && <p style={{ fontSize: p.subtitleSize || 18, opacity: 0.7, maxWidth: 600 }}>{p.subtitle}</p>}
+        {p.title && <h1 style={{ fontSize: p.titleSize || 48, fontWeight: p.titleWeight || '800', lineHeight: 1.1, margin: 0 }}>{p.title}</h1>}
+        {p.subtitle && <p style={{ fontSize: p.subtitleSize || 18, opacity: 0.7, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.subtitle}</p>}
         {(p.primaryBtnText || p.btnText) && (
-          <a href={p.primaryBtnUrl || '#'} style={{ padding: '12px 32px', background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 10, fontWeight: 700, textDecoration: 'none' }}>
+          <a href={p.primaryBtnUrl || '#'} style={{ display: 'inline-block', padding: \`\${p.btnPaddingY ?? 12}px \${p.btnPaddingX ?? 32}px\`, background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 10, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>
             {p.primaryBtnText || p.btnText}
           </a>
         )}
-        {displayImg && <img src={displayImg} style={{ width: '100%', maxWidth: 800, borderRadius: 20, marginTop: 20 }} />}
+        {displayImg && (
+          <img src={displayImg} alt={p.title || ''} style={{ width: '100%', maxWidth: 520, borderRadius: 20, marginTop: 8, objectFit: 'cover' }} />
+        )}
         {freeEls}
       </section>
     )
@@ -353,13 +352,17 @@ export function BlockPreview({ block }: { block: any }) {
 
     return (
       <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: isLeft ? 'row' : 'row-reverse', alignItems: 'center', gap: 48, flexWrap: 'wrap' }}>
-        {displayImg && <div style={{ flex: 1, minWidth: 300 }}><img src={displayImg} style={{ width: '100%', borderRadius: 24 }} /></div>}
-        <div style={{ flex: 1.2, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {p.title && <h2 style={{ fontSize: p.titleSize || 36, fontWeight: '700' }}>{p.title}</h2>}
-          {p.description && <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.8 }}>{p.description}</p>}
-          {p.btnText && <a href={p.btnUrl || '#'} style={{ display: 'inline-block', width: 'fit-content', padding: '10px 24px', border: \`2px solid \${accent}\`, color: accent, borderRadius: 10, fontWeight: 600, textDecoration: 'none' }}>{p.btnText}</a>}
+        {displayImg && <div style={{ flex: 1, minWidth: 280, maxWidth: 480 }}><img src={displayImg} alt={p.title || ''} style={{ width: '100%', borderRadius: 24, display: 'block' }} /></div>}
+        <div style={{ flex: 1.2, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {p.title && <h2 style={{ fontSize: p.titleSize || 36, fontWeight: '700', margin: 0 }}>{p.title}</h2>}
+          {p.description && <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.8, margin: 0 }}>{p.description}</p>}
+          {(p.btnText || p.primaryBtnText) && (
+            <a href={p.btnUrl || '#'} style={{ display: 'inline-block', width: 'fit-content', padding: '10px 24px', border: \`2px solid \${accent}\`, color: accent, borderRadius: p.btnRadius ?? 10, fontWeight: 600, textDecoration: 'none' }}>
+              {p.btnText || p.primaryBtnText}
+            </a>
+          )}
+          {freeEls}
         </div>
-        {freeEls}
       </section>
     )
   }
@@ -371,17 +374,35 @@ export function BlockPreview({ block }: { block: any }) {
 
     return (
       <section className={animationClass} style={{ ...wrapStyle, textAlign: 'center' }}>
-        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', marginBottom: 40 }}>{p.title}</h2>}
-        <div style={{ display: 'grid', gridTemplateColumns: \`repeat(auto-fit, minmax(280px, 1fr))\`, gap: 24 }}>
-          {items.map((item: any, i: number) => (
-            <div key={i} style={{ background: cardBg, padding: 32, borderRadius: p.cardRadius ?? 20, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {item.imageUrl && <img src={item.imageUrl} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }} />}
-              <h3 style={{ fontSize: 20, fontWeight: 700 }}>{item.title}</h3>
-              <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.6 }}>{item.description}</p>
-              {item.price && <div style={{ fontSize: 22, fontWeight: 800, color: accent }}>{item.price}</div>}
-            </div>
-          ))}
-        </div>
+        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', marginBottom: 40, marginTop: 0 }}>{p.title}</h2>}
+        {items.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: \`repeat(auto-fit, minmax(260px, 1fr))\`, gap: 24 }}>
+            {items.map((item: any, i: number) => (
+              <div key={i} style={{ background: cardBg, padding: 32, borderRadius: p.cardRadius ?? 20, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {item.imageUrl && <img src={item.imageUrl} alt={item.title || ''} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }} />}
+                {item.title && <h3 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{item.title}</h3>}
+                {item.description && <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.6, margin: 0 }}>{item.description}</p>}
+                {item.price && <div style={{ fontSize: 22, fontWeight: 800, color: accent }}>{item.price}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        {freeEls}
+      </section>
+    )
+  }
+
+  if (type === 'promo') {
+    const flexAlign = (p.align === 'left') ? 'flex-start' : (p.align === 'right') ? 'flex-end' : 'center'
+    return (
+      <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: flexAlign, textAlign: (p.align || 'center') as any, gap: 20 }}>
+        {p.title && <h2 style={{ fontSize: p.titleSize || 36, fontWeight: '800', margin: 0 }}>{p.title}</h2>}
+        {p.description && <p style={{ fontSize: 18, opacity: 0.8, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.description}</p>}
+        {(p.btnText || p.primaryBtnText) && (
+          <a href={p.btnUrl || '#'} style={{ display: 'inline-block', padding: '14px 36px', background: p.btnBg || accent, color: '#fff', borderRadius: p.btnRadius ?? 12, fontWeight: 700, textDecoration: 'none', fontSize: 16, marginTop: 8 }}>
+            {p.btnText || p.primaryBtnText}
+          </a>
+        )}
         {freeEls}
       </section>
     )
@@ -390,13 +411,17 @@ export function BlockPreview({ block }: { block: any }) {
   if (type === 'contact') {
     return (
       <section className={animationClass} style={{ ...wrapStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
-        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700' }}>{p.title}</h2>}
-        <div style={{ width: '100%', maxWidth: 600, background: p.cardBg || '#f8fafc', padding: 40, borderRadius: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-           <input type="text" placeholder="Name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd' }} />
-           <input type="email" placeholder="Email" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd' }} />
-           <textarea placeholder="Message" rows={4} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd' }} />
-           <button style={{ width: '100%', padding: '14px', background: accent, color: '#fff', borderRadius: 10, fontWeight: 700, border: 'none' }}>Send Message</button>
-        </div>
+        {p.title && <h2 style={{ fontSize: p.titleSize || 34, fontWeight: '700', margin: 0 }}>{p.title}</h2>}
+        {p.showForm !== false && (
+          <div style={{ width: '100%', maxWidth: 600, background: p.cardBg || '#f8fafc', padding: 40, borderRadius: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+             <input type="text" placeholder="Name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
+             <input type="email" placeholder="Email" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, boxSizing: 'border-box' }} />
+             <textarea placeholder="Message" rows={4} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #ddd', fontSize: 15, resize: 'none', boxSizing: 'border-box' }} />
+             <button style={{ width: '100%', padding: '14px', background: accent, color: '#fff', borderRadius: 10, fontWeight: 700, border: 'none', fontSize: 15, cursor: 'pointer' }}>
+               {p.submitBtnText || 'Send Message'}
+             </button>
+          </div>
+        )}
         {freeEls}
       </section>
     )
@@ -404,10 +429,10 @@ export function BlockPreview({ block }: { block: any }) {
 
   if (type === 'footer') {
     return (
-      <footer className={animationClass} style={{ ...wrapStyle, borderTop: \`1px solid \${text}15\`, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {p.brandName && <div style={{ fontWeight: 800, fontSize: 24 }}>{p.brandName}</div>}
-        {p.description && <p style={{ opacity: 0.6, maxWidth: 600, margin: '0 auto' }}>{p.description}</p>}
-        <div style={{ fontSize: 14, opacity: 0.5, marginTop: 20 }}>© {new Date().getFullYear()} {p.copyright || 'All rights reserved.'}</div>
+      <footer className={animationClass} style={{ ...wrapStyle, borderTop: \`1px solid \${text}15\`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+        {(p.brandName || p.title) && <div style={{ fontWeight: 800, fontSize: 24 }}>{p.brandName || p.title}</div>}
+        {p.description && <p style={{ opacity: 0.6, maxWidth: 600, margin: 0, lineHeight: 1.6 }}>{p.description}</p>}
+        <div style={{ fontSize: 14, opacity: 0.5, marginTop: 8 }}>© {new Date().getFullYear()} {p.copyright || 'All rights reserved.'}</div>
         {freeEls}
       </footer>
     )
@@ -415,8 +440,8 @@ export function BlockPreview({ block }: { block: any }) {
 
   return (
     <div className={animationClass} style={wrapStyle}>
-      {p.title && <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>{p.title}</h2>}
-      {p.subtitle && <p style={{ opacity: 0.7, lineHeight: 1.6 }}>{p.subtitle}</p>}
+      {p.title && <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, marginTop: 0 }}>{p.title}</h2>}
+      {p.subtitle && <p style={{ opacity: 0.7, lineHeight: 1.6, margin: 0 }}>{p.subtitle}</p>}
       {freeEls}
     </div>
   )
