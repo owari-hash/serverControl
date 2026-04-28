@@ -76,7 +76,7 @@ export function BlockPreview({ block }: { block: any }) {
         {link.label || link.href}
       </a>
     ))
-    const titleBlock = <div style={{ fontWeight: 900, fontSize: titlePx, letterSpacing: '-0.03em' }}>{p.title || p.brandName || 'Site'}</div>
+    const titleBlock = <div style={{ fontWeight: 900, fontSize: titlePx, letterSpacing: '-0.03em' }}>{p.title || p.brandName || ''}</div>
     const ctaBlock = p.ctaText ? <a href={p.ctaUrl} style={{ padding: '10px 24px', background: accent, color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: \`0 4px 12px \${accent}40\` }}>{p.ctaText}</a> : null
     
     return (
@@ -203,8 +203,8 @@ export function BlockPreview({ block }: { block: any }) {
       <footer style={{ ...wrap, borderTop: \`1px solid \${text}10\`, paddingTop: 60, paddingBottom: 60 }} className={animationClass}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 32 }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 24, marginBottom: 8 }}>{p.brandName || 'Site'}</div>
-            <p style={{ opacity: 0.5, fontSize: 14 }}>{p.copyright || \`© \${new Date().getFullYear()} All rights reserved.\`}</p>
+            <div style={{ fontWeight: 900, fontSize: 24, marginBottom: 8 }}>{p.brandName || ''}</div>
+            <p style={{ opacity: 0.5, fontSize: 14 }}>{p.copyright || ''}</p>
           </div>
           <div style={{ display: 'flex', gap: 24 }}>
             {/* Optional footer links could go here */}
@@ -216,6 +216,7 @@ export function BlockPreview({ block }: { block: any }) {
   }
 
   return (
+
     <div style={wrap} className={animationClass}>
       {p.title && <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>{p.title}</h2>}
       {p.subtitle && <p style={{ opacity: 0.7, lineHeight: 1.6 }}>{p.subtitle}</p>}
