@@ -50,8 +50,7 @@ function sectionDefaults(name) {
     componentType: 'section',
     props: {
       minHeight: name === 'header' ? 80 : name === 'footer' ? 300 : name === 'hero' ? 600 : 500,
-      paddingY: 80,
-      backgroundColor: '#ffffff'
+      paddingY: 80
     }
   };
 }
