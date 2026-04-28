@@ -440,7 +440,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"/\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"CMS powered page\"\n  }\n}"
+              "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"/\",\n  \"order\": 0,\n  \"props\": {\n    \"title\": \"{{projectName}}\",\n    \"subtitle\": \"\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/core/components",

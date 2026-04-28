@@ -129,7 +129,7 @@
               { "key": "x-project-id", "value": "{{projectName}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"Welcome to {{projectName}}\",\n    \"subtitle\": \"Modern CMS powered platform with modular architecture\",\n    \"align\": \"center\",\n    \"theme\": \"primary\",\n    \"spacing\": \"xl\",\n    \"buttons\": [\n      { \"text\": \"Book Consultation\", \"href\": \"{{routeBooking}}\", \"variant\": \"primary\", \"size\": \"lg\" },\n      { \"text\": \"Explore Services\", \"href\": \"{{routeServices}}\", \"variant\": \"outline\", \"size\": \"lg\" }\n    ],\n    \"images\": [\n      { \"url\": \"https://images.unsplash.com/photo-1551434678-e076c223a692\", \"alt\": \"Team collaboration\" }\n    ]\n  }\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"componentType\": \"hero\",\n  \"pageRoute\": \"{{routeHome}}\",\n  \"order\": 1,\n  \"props\": {\n    \"title\": \"\",\n    \"subtitle\": \"\",\n    \"align\": \"center\",\n    \"theme\": \"primary\",\n    \"spacing\": \"xl\",\n    \"buttons\": [\n      { \"text\": \"Book Consultation\", \"href\": \"{{routeBooking}}\", \"variant\": \"primary\", \"size\": \"lg\" },\n      { \"text\": \"Explore Services\", \"href\": \"{{routeServices}}\", \"variant\": \"outline\", \"size\": \"lg\" }\n    ],\n    \"images\": [\n      { \"url\": \"https://images.unsplash.com/photo-1551434678-e076c223a692\", \"alt\": \"Team collaboration\" }\n    ]\n  }\n}" },
             "url": { "raw": "{{apiBase}}/core/components", "host": ["{{apiBase}}"], "path": ["core", "components"] }
           }
         },
